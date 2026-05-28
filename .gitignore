@@ -1,0 +1,18 @@
+# Keys and certificates — never commit
+keys/
+
+# Populated env files — contain secrets
+scripts/.env.*
+!scripts/.env.example
+
+# Populated tfvars — contain secrets
+*.tfvars
+!*.tfvars.example
+
+# Terraform working dirs
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+.DS_Store
+

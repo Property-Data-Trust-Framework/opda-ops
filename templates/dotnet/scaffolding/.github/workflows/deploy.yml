@@ -1,0 +1,145 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION: eu-west-2
+  TF_VERSION: "1.10.5"
+  DOTNET_VERSION: "9.0"
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - run: dotnet test --configuration Release
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: test
+    environment: dev
+
+    env:
+      TF_BACKEND_KEY: ${{ github.event.repository.name }}/dev/terraform.tfstate
+      TF_VAR_name:                     ${{ github.event.repository.name }}
+      TF_VAR_environment:              dev
+      TF_VAR_github_repo:              ${{ github.repository }}
+      TF_VAR_image_tag:                ${{ github.sha }}
+      TF_VAR_oauth_issuer:             ${{ vars.OAUTH_ISSUER }}
+      TF_VAR_oauth_client_id:          ${{ secrets.OAUTH_CLIENT_ID }}
+      TF_VAR_transport_certificate:    ${{ secrets.TRANSPORT_CERTIFICATE }}
+      TF_VAR_transport_key:            ${{ secrets.TRANSPORT_KEY }}
+      TF_VAR_ca_trusted_list:          ${{ secrets.CA_TRUSTED_LIST }}
+      TF_VAR_shared_services_ecr_base: ${{ vars.SHARED_SERVICES_ECR_BASE }}
+      TF_VAR_signing_key:              ${{ secrets.SIGNING_KEY }}
+      TF_VAR_bypass_auth:              ${{ vars.BYPASS_AUTH }}
+      TF_VAR_provenance_signing_kid:   ${{ vars.PROVENANCE_SIGNING_KID }}
+      TF_VAR_dataprov_key:             ${{ secrets.DATAPROV_KEY }}
+      TF_VAR_authorizer_image_tag:     ${{ vars.AUTHORIZER_IMAGE_TAG }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Configure git for private Terraform modules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        run: |
+          BUCKET="ops-terraform-state-$(aws sts get-caller-identity --query Account --output text)"
+          terraform init \
+            -backend-config="bucket=$BUCKET" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="key=${{ env.TF_BACKEND_KEY }}"
+        working-directory: terraform
+
+      - name: Terraform apply (ECR bootstrap)
+        run: terraform apply -auto-approve -input=false -target=aws_ecr_repository.app
+        working-directory: terraform
+
+      - name: Build and push image
+        env:
+          IMAGE_URI: ${{ steps.ecr-login.outputs.registry }}/${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t "$IMAGE_URI:$IMAGE_TAG" -t "$IMAGE_URI:latest" .
+          docker push "$IMAGE_URI:$IMAGE_TAG"
+          docker push "$IMAGE_URI:latest"
+
+      - name: Terraform apply
+        run: terraform apply -auto-approve -input=false
+        working-directory: terraform
+
+      - name: Publish OpenAPI spec to api-docs site
+        working-directory: terraform
+        env:
+          SPEC_NAME: ${{ github.event.repository.name }}.yaml
+          SPEC_PLACEHOLDER: opda-api.local
+        run: |
+          DOCS_BUCKET="opda-api-docs-$(aws sts get-caller-identity --query Account --output text)"
+          NLB_DNS="${{ vars.SHARED_PROXY_HOST }}"
+          if [[ -z "$NLB_DNS" ]]; then
+            echo "::warning::SHARED_PROXY_HOST var not set — skipping spec publish"
+          else
+            PATCHED="$(mktemp --suffix=.yaml)"
+            sed "s|${SPEC_PLACEHOLDER}|${NLB_DNS}|g" ../openapi/api.yml > "$PATCHED"
+            aws s3 cp "$PATCHED" "s3://${DOCS_BUCKET}/specs/${SPEC_NAME}" \
+              --content-type "application/yaml" \
+              --cache-control "no-cache"
+            DIST_ID="$(aws cloudfront list-distributions \
+              --query "DistributionList.Items[?Comment=='opda-api-docs'].Id | [0]" \
+              --output text 2>/dev/null || echo "")"
+            if [[ -n "$DIST_ID" && "$DIST_ID" != "None" ]]; then
+              aws cloudfront create-invalidation \
+                --distribution-id "$DIST_ID" \
+                --paths "/specs/${SPEC_NAME}" >/dev/null
+              echo "Invalidated /specs/${SPEC_NAME} on $DIST_ID"
+            fi
+          fi
+
+      - name: Deployment summary
+        if: always()
+        working-directory: terraform
+        run: |
+          echo "## Deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Output | Value |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+          terraform output -json 2>/dev/null | \
+            python3 -c "
+          import sys, json
+          for k, v in json.load(sys.stdin).items():
+              print(f'| \`{k}\` | \`{v[\"value\"]}\` |')
+          " >> "$GITHUB_STEP_SUMMARY" || true

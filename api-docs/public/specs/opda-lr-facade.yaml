@@ -1,0 +1,942 @@
+openapi: 3.0.3
+info:
+  title: OPDA Land Registry API
+  description: |
+    API for retrieving HMLR Official Copy Register Extract data.
+    This API mirrors the V2_1 XML version of the HMLR Register Extract web service.
+  version: 1.0.0
+
+servers:
+  - url: https://{host}
+    description: HMLR Official Copy Data API
+    variables:
+      host:
+        default: matls-mockapi.directory.pdtf.raidiam.io
+        description: API host server
+
+x-amazon-apigateway-tags:
+  - name: Register Extracts
+    description: Official copy register extract operations
+
+paths:
+  /opda/official-copies/v1/register-extract:
+    post:
+      tags:
+        - Register Extracts
+      summary: Request Official Copy Register Extract
+      description: Retrieve a complete HMLR Official Copy Register Extract for a specific title number
+      operationId: getRegisterExtract
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterExtractRequest'
+            example:
+              messageId: "MSG-2026-001-ABC123"
+              externalReference: "EXT-REF-20260115-001"
+              customerReference: "CUST-SMITH-2026-789"
+              titleNumber: "CYM123456"
+              expectedPrice: 7
+              titleKnownOfficialCopy:
+                continueIfTitleIsClosedAndContinued: false
+                notifyIfPendingFirstRegistration: false
+                notifyIfPendingApplication: false
+                sendBackDated: false
+                continueIfActualFeeExceedsExpected: false
+                includeTitlePlanIndicator: true
+      responses:
+        '200':
+          description: Successful response with provenance-signed payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedTitleDeedResponse'
+        '404':
+          description: Title deed not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - authorizer: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${facade_service_invoke_arn}
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+
+components:
+  schemas:
+    RegisterExtractRequest:
+      type: object
+      required:
+        - messageId
+        - titleNumber
+        - titleKnownOfficialCopy
+      properties:
+        messageId:
+          type: string
+          description: Unique identifier for the message request
+          example: "MSG-2026-001-ABC123"
+        externalReference:
+          type: string
+          description: External reference for tracking
+          example: "EXT-REF-20260115-001"
+        customerReference:
+          type: string
+          description: Customer reference number
+          example: "CUST-SMITH-2026-789"
+        titleNumber:
+          type: string
+          description: The title number for the property
+          example: "CYM123456"
+        expectedPrice:
+          type: number
+          description: Expected price for the official copy (in GBP)
+          example: 7
+        titleKnownOfficialCopy:
+          $ref: '#/components/schemas/TitleKnownOfficialCopy'
+
+    TitleKnownOfficialCopy:
+      type: object
+      required:
+        - continueIfTitleIsClosedAndContinued
+        - notifyIfPendingFirstRegistration
+        - notifyIfPendingApplication
+        - sendBackDated
+        - continueIfActualFeeExceedsExpected
+        - includeTitlePlanIndicator
+      properties:
+        continueIfTitleIsClosedAndContinued:
+          type: boolean
+          description: Whether to continue if the title is closed and continued
+          default: false
+        notifyIfPendingFirstRegistration:
+          type: boolean
+          description: Whether to notify if there is a pending first registration
+          default: false
+        notifyIfPendingApplication:
+          type: boolean
+          description: Whether to notify if there is a pending application
+          default: false
+        sendBackDated:
+          type: boolean
+          description: Whether to send back-dated information
+          default: false
+        continueIfActualFeeExceedsExpected:
+          type: boolean
+          description: Whether to continue if the actual fee exceeds the expected price
+          default: false
+        includeTitlePlanIndicator:
+          type: boolean
+          description: Whether to include the title plan in the response
+          default: true
+
+    SignedTitleDeedResponse:
+      type: object
+      required:
+        - data
+        - provenance
+      properties:
+        data:
+          $ref: '#/components/schemas/TitleDeed'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+
+    Provenance:
+      type: object
+      required:
+        - alg
+        - kid
+        - signature
+        - signedAt
+        - payloadHash
+      properties:
+        alg:
+          type: string
+          example: RS256
+        kid:
+          type: string
+          example: opda-signing-key-2026-01
+        signature:
+          type: string
+          description: Base64url-encoded RS256 signature over the JCS-canonicalized data payload.
+        signedAt:
+          type: string
+          format: date-time
+        payloadHash:
+          $ref: '#/components/schemas/PayloadHash'
+
+    PayloadHash:
+      type: object
+      required:
+        - alg
+        - value
+      properties:
+        alg:
+          type: string
+          example: SHA-256
+        value:
+          type: string
+          description: Base64url-encoded SHA-256 hash of the JCS-canonicalized data payload.
+
+    TitleDeed:
+      type: object
+      required:
+        - OCSummaryData
+        - OCRegisterData
+      properties:
+        OCSummaryData:
+          $ref: '#/components/schemas/OCSummaryData'
+        OCRegisterData:
+          $ref: '#/components/schemas/OCRegisterData'
+
+    OCSummaryData:
+      type: object
+      required:
+        - OfficialCopyDateTime
+        - EditionDate
+        - PropertyAddress
+        - Title
+        - RegisterEntryIndicators
+        - Proprietorship
+      properties:
+        OfficialCopyDateTime:
+          type: string
+          format: date-time
+        EditionDate:
+          type: string
+          format: date
+        PricePaidEntry:
+          $ref: '#/components/schemas/PricePaidEntry'
+        PropertyAddress:
+          $ref: '#/components/schemas/Address'
+        Title:
+          $ref: '#/components/schemas/Title'
+        RegisterEntryIndicators:
+          $ref: '#/components/schemas/RegisterEntryIndicators'
+        Proprietorship:
+          $ref: '#/components/schemas/Proprietorship'
+        Lease:
+          $ref: '#/components/schemas/LeaseEntries'
+        RestrictionDetails:
+          $ref: '#/components/schemas/RestrictionDetails'
+        Charge:
+          $ref: '#/components/schemas/ChargeEntries'
+        AgreedNotice:
+          $ref: '#/components/schemas/AgreedNoticeEntries'
+        Bankruptcy:
+          $ref: '#/components/schemas/Entries'
+        Caution:
+          $ref: '#/components/schemas/Entries'
+        DeedOfPostponement:
+          $ref: '#/components/schemas/Entries'
+        GreenOutEntry:
+          $ref: '#/components/schemas/Entries'
+        HomeRights:
+          $ref: '#/components/schemas/HomeRightsEntries'
+        RentCharge:
+          $ref: '#/components/schemas/Entries'
+        VendorsLien:
+          $ref: '#/components/schemas/Entries'
+        RightOfPreEmption:
+          $ref: '#/components/schemas/Entries'
+        DocumentDetails:
+          $ref: '#/components/schemas/DocumentDetails'
+        UnilateralNoticeDetails:
+          $ref: '#/components/schemas/UnilateralNoticeEntries'
+        DeathOfProprietor:
+          $ref: '#/components/schemas/Entries'
+        DiscountCharge:
+          $ref: '#/components/schemas/Entries'
+        EquitableCharge:
+          $ref: '#/components/schemas/Entries'
+        NotedCharge:
+          $ref: '#/components/schemas/Entries'
+        CreditorsNotice:
+          $ref: '#/components/schemas/Entries'
+        UnidentifiedEntry:
+          $ref: '#/components/schemas/Entries'
+        CCBIEntry:
+          $ref: '#/components/schemas/Entries'
+
+    OCRegisterData:
+      type: object
+      required:
+        - PropertyRegister
+        - ProprietorshipRegister
+      properties:
+        PropertyRegister:
+          $ref: '#/components/schemas/Register'
+        ProprietorshipRegister:
+          $ref: '#/components/schemas/Register'
+        ChargesRegister:
+          $ref: '#/components/schemas/Register'
+
+    Address:
+      type: object
+      required:
+        - AddressLine
+      properties:
+        PostcodeZone:
+          $ref: '#/components/schemas/PostcodeZone'
+        AddressLine:
+          $ref: '#/components/schemas/AddressLine'
+
+    PostcodeZone:
+      type: object
+      required:
+        - Postcode
+      properties:
+        Postcode:
+          type: string
+
+    AddressLine:
+      type: object
+      properties:
+        Line:
+          type: array
+          items:
+            type: string
+
+    Title:
+      type: object
+      required:
+        - TitleNumber
+        - ClassOfTitleCode
+        - CommonholdIndicator
+        - TitleRegistrationDetails
+      properties:
+        TitleNumber:
+          type: string
+        ClassOfTitleCode:
+          type: string
+          enum: ['10', '20', '30', '40', '50', '60', '70', '80', '90', '100', '110', '120', '130']
+        CommonholdIndicator:
+          type: boolean
+        TitleRegistrationDetails:
+          $ref: '#/components/schemas/TitleRegistrationDetails'
+
+    TitleRegistrationDetails:
+      type: object
+      required:
+        - DistrictName
+        - AdministrativeArea
+        - LandRegistryOfficeName
+        - LatestEditionDate
+      properties:
+        DistrictName:
+          type: string
+        AdministrativeArea:
+          type: string
+        LandRegistryOfficeName:
+          type: string
+        LatestEditionDate:
+          type: string
+          format: date
+        PostcodeZone:
+          $ref: '#/components/schemas/PostcodeZone'
+        RegistrationDate:
+          type: string
+          format: date
+
+    RegisterEntryIndicators:
+      type: object
+      required:
+        - AgreedNoticeIndicator
+        - BankruptcyIndicator
+        - CautionIndicator
+        - CCBIIndicator
+        - ChargeeIndicator
+        - ChargeIndicator
+        - ChargeRelatedRestrictionIndicator
+        - ChargeRestrictionIndicator
+        - CreditorsNoticeIndicator
+        - DeathOfProprietorIndicator
+        - DeedOfPostponementIndicator
+        - DiscountChargeIndicator
+        - EquitableChargeIndicator
+        - GreenOutEntryIndicator
+        - HomeRightsChangeOfAddressIndicator
+        - HomeRightsIndicator
+        - LeaseHoldTitleIndicator
+        - MultipleChargeIndicator
+        - NonChargeRestrictionIndicator
+        - NotedChargeIndicator
+        - PricePaidIndicator
+        - PropertyDescriptionNotesIndicator
+        - RentChargeIndicator
+        - RightOfPreEmptionIndicator
+        - ScheduleOfLeasesIndicator
+        - SubChargeIndicator
+        - UnidentifiedEntryIndicator
+        - UnilateralNoticeBeneficiaryIndicator
+        - UnilateralNoticeIndicator
+        - VendorsLienIndicator
+      properties:
+        AgreedNoticeIndicator:
+          type: boolean
+        BankruptcyIndicator:
+          type: boolean
+        CautionIndicator:
+          type: boolean
+        CCBIIndicator:
+          type: boolean
+        ChargeeIndicator:
+          type: boolean
+        ChargeIndicator:
+          type: boolean
+        ChargeRelatedRestrictionIndicator:
+          type: boolean
+        ChargeRestrictionIndicator:
+          type: boolean
+        CreditorsNoticeIndicator:
+          type: boolean
+        DeathOfProprietorIndicator:
+          type: boolean
+        DeedOfPostponementIndicator:
+          type: boolean
+        DiscountChargeIndicator:
+          type: boolean
+        EquitableChargeIndicator:
+          type: boolean
+        GreenOutEntryIndicator:
+          type: boolean
+        HomeRightsChangeOfAddressIndicator:
+          type: boolean
+        HomeRightsIndicator:
+          type: boolean
+        LeaseHoldTitleIndicator:
+          type: boolean
+        MultipleChargeIndicator:
+          type: boolean
+        NonChargeRestrictionIndicator:
+          type: boolean
+        NotedChargeIndicator:
+          type: boolean
+        PricePaidIndicator:
+          type: boolean
+        PropertyDescriptionNotesIndicator:
+          type: boolean
+        RentChargeIndicator:
+          type: boolean
+        RightOfPreEmptionIndicator:
+          type: boolean
+        ScheduleOfLeasesIndicator:
+          type: boolean
+        SubChargeIndicator:
+          type: boolean
+        UnidentifiedEntryIndicator:
+          type: boolean
+        UnilateralNoticeBeneficiaryIndicator:
+          type: boolean
+        UnilateralNoticeIndicator:
+          type: boolean
+        VendorsLienIndicator:
+          type: boolean
+
+    Proprietorship:
+      type: object
+      properties:
+        CurrentProprietorshipDate:
+          type: string
+          format: date
+        CautionerParty:
+          type: array
+          items:
+            $ref: '#/components/schemas/Party'
+        RegisteredProprietorParty:
+          type: array
+          items:
+            $ref: '#/components/schemas/Party'
+
+    Party:
+      type: object
+      properties:
+        PrivateIndividual:
+          $ref: '#/components/schemas/PrivateIndividual'
+        Organization:
+          $ref: '#/components/schemas/Organization'
+        Address:
+          $ref: '#/components/schemas/Address'
+        CharityDetails:
+          $ref: '#/components/schemas/CharityDetails'
+        TradingName:
+          type: string
+        PartyNumber:
+          type: string
+        PartyDescription:
+          type: string
+
+    PrivateIndividual:
+      type: object
+      required:
+        - Name
+      properties:
+        Name:
+          $ref: '#/components/schemas/Name'
+        Alias:
+          type: array
+          items:
+            $ref: '#/components/schemas/Name'
+
+    Name:
+      type: object
+      required:
+        - SurnameName
+      properties:
+        ForenamesName:
+          type: string
+        SurnameName:
+          type: string
+
+    Organization:
+      type: object
+      required:
+        - Name
+      properties:
+        Name:
+          type: string
+        CompanyRegistrationNumber:
+          type: string
+
+    CharityDetails:
+      type: object
+      required:
+        - CharityName
+        - CharityType
+      properties:
+        CharityName:
+          type: array
+          items:
+            type: string
+        CharityAddress:
+          type: array
+          items:
+            $ref: '#/components/schemas/Address'
+        CharityType:
+          $ref: '#/components/schemas/CharityCode'
+
+    CharityCode:
+      type: object
+      properties:
+        Value:
+          type: string
+          enum: ['C', 'R', 'S']
+
+    EntryDetails:
+      type: object
+      required:
+        - EntryNumber
+        - EntryText
+      properties:
+        EntryNumber:
+          type: string
+        EntryText:
+          type: string
+        RegistrationDate:
+          type: string
+          format: date
+        SubRegisterCode:
+          type: string
+          enum: ['A', 'B', 'C', 'D']
+        ScheduleCode:
+          type: string
+          enum: ['0', '10', '20', '30', '40', '50', '60', '70', '80', '90', '100', '110', '120', '130']
+        Infills:
+          type: object
+
+    PricePaidEntry:
+      type: object
+      required:
+        - EntryDetails
+      properties:
+        MultipleTitleIndicator:
+          type: string
+          enum: ['2', 'MoreThan2']
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    LeaseEntries:
+      type: object
+      required:
+        - LeaseEntry
+      properties:
+        LeaseEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/Lease'
+          minItems: 1
+
+    Lease:
+      type: object
+      required:
+        - LeaseTerm
+        - LeaseDate
+        - LeaseParty
+        - EntryDetails
+      properties:
+        LeaseTerm:
+          type: string
+        LeaseDate:
+          type: string
+        Rent:
+          type: string
+        LeaseParty:
+          type: array
+          items:
+            $ref: '#/components/schemas/Party'
+          minItems: 2
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    RestrictionDetails:
+      type: object
+      required:
+        - RestrictionEntry
+      properties:
+        RestrictionEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/RestrictionEntry'
+
+    RestrictionEntry:
+      type: object
+      properties:
+        ChargeRelatedRestriction:
+          $ref: '#/components/schemas/Restriction'
+        ChargeRestriction:
+          $ref: '#/components/schemas/Restriction'
+        NonChargeRestriction:
+          $ref: '#/components/schemas/Restriction'
+
+    Restriction:
+      type: object
+      required:
+        - RestrictionTypeCode
+        - EntryDetails
+      properties:
+        RestrictionTypeCode:
+          type: string
+          enum: ['0', '10', '20', '30']
+        ChargeID:
+          type: string
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    ChargeEntries:
+      type: object
+      required:
+        - ChargeEntry
+      properties:
+        ChargeEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChargeDetails'
+
+    ChargeDetails:
+      type: object
+      required:
+        - RegisteredCharge
+        - ChargeProprietor
+      properties:
+        ChargeID:
+          type: string
+        ChargeDate:
+          type: string
+          format: date
+        RegisteredCharge:
+          $ref: '#/components/schemas/Charge'
+        ChargeProprietor:
+          $ref: '#/components/schemas/ChargeProprietor'
+        SubCharge:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubChargeDetails'
+
+    Charge:
+      type: object
+      required:
+        - EntryDetails
+      properties:
+        MultipleTitleIndicator:
+          type: string
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    ChargeProprietor:
+      type: object
+      required:
+        - ChargeeParty
+        - EntryDetails
+      properties:
+        ChargeeParty:
+          type: array
+          items:
+            $ref: '#/components/schemas/Party'
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    SubChargeDetails:
+      type: object
+      required:
+        - RegisteredCharge
+        - ChargeProprietor
+      properties:
+        ChargeDate:
+          type: string
+          format: date
+        RegisteredCharge:
+          $ref: '#/components/schemas/Charge'
+        ChargeProprietor:
+          $ref: '#/components/schemas/ChargeProprietor'
+
+    AgreedNoticeEntries:
+      type: object
+      required:
+        - AgreedNoticeEntry
+      properties:
+        AgreedNoticeEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgreedNotice'
+
+    AgreedNotice:
+      type: object
+      required:
+        - EntryDetails
+      properties:
+        AgreedNoticeType:
+          type: string
+          enum: ['10', '20']
+        EntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    Entries:
+      type: object
+      required:
+        - EntryDetails
+      properties:
+        EntryDetails:
+          type: array
+          items:
+            $ref: '#/components/schemas/EntryDetails'
+
+    HomeRightsEntries:
+      type: object
+      required:
+        - HomeRightsEntry
+      properties:
+        HomeRightsEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeRights'
+
+    HomeRights:
+      type: object
+      required:
+        - ChangeOfAddressIndicator
+        - HomeRightsEntryDetails
+      properties:
+        ChangeOfAddressIndicator:
+          type: boolean
+        HomeRightsEntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+        ChangeOfAddressEntryDetails:
+          $ref: '#/components/schemas/EntryDetails'
+
+    DocumentDetails:
+      type: object
+      required:
+        - Document
+      properties:
+        Document:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentEntry'
+
+    DocumentEntry:
+      type: object
+      required:
+        - DocumentType
+        - EntryNumber
+        - PlanOnlyIndicator
+        - RegisterDescription
+      properties:
+        DocumentType:
+          type: string
+          enum: ['10', '20', '30', '40', '50', '60', '70', '80', '90', '100', '110', '120', '130', '140', '150', '160', '170', '180']
+        DocumentDate:
+          type: string
+        EntryNumber:
+          type: array
+          items:
+            type: string
+        PlanOnlyIndicator:
+          type: boolean
+        FiledUnder:
+          type: string
+        RegisterDescription:
+          type: string
+
+    UnilateralNoticeEntries:
+      type: object
+      required:
+        - UnilateralNoticeEntry
+      properties:
+        UnilateralNoticeEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/UnilateralNoticeDetails'
+
+    UnilateralNoticeDetails:
+      type: object
+      required:
+        - UnilateralNotice
+        - UnilateralNoticeBeneficiary
+      properties:
+        UnilateralNotice:
+          $ref: '#/components/schemas/EntryDetails'
+        UnilateralNoticeBeneficiary:
+          $ref: '#/components/schemas/EntryDetails'
+
+    Register:
+      type: object
+      required:
+        - RegisterEntry
+      properties:
+        DistrictDetails:
+          $ref: '#/components/schemas/DistrictDetails'
+        RegisterEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegisterEntry'
+        Schedule:
+          type: array
+          items:
+            $ref: '#/components/schemas/Schedule'
+
+    DistrictDetails:
+      type: object
+      properties:
+        EntryText:
+          type: array
+          items:
+            type: string
+
+    RegisterEntry:
+      type: object
+      required:
+        - EntryNumber
+        - EntryText
+      properties:
+        EntryNumber:
+          type: string
+        EntryDate:
+          type: string
+        EntryType:
+          type: string
+        EntryText:
+          type: array
+          items:
+            type: string
+
+    Schedule:
+      type: object
+      required:
+        - ScheduleType
+        - ScheduleEntry
+      properties:
+        ScheduleType:
+          type: string
+        ScheduleEntry:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegisterEntry'
+
+    BinaryObject:
+      type: object
+      properties:
+        data:
+          type: string
+        filename:
+          type: string
+        format:
+          type: string
+        mimeCode:
+          type: string
+        characterSetCode:
+          type: string
+
+    Attachment:
+      type: object
+      required:
+        - EmbeddedFileBinaryObject
+      properties:
+        EmbeddedFileBinaryObject:
+          $ref: '#/components/schemas/BinaryObject'
+        Title:
+          type: string
+        Description:
+          type: string
+        Date:
+          type: string
+          format: date
+        CopyrightNotices:
+          type: string
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+
+  securitySchemes:
+    authorizer:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: custom
+      x-amazon-apigateway-authorizer:
+        authorizerUri: ${authorizer_invoke_arn}
+        authorizerResultTtlInSeconds: 0
+        type: request
+        identitySource : method.request.header.Authorization
+
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseTemplates:
+      application/json: "{\"error\": \"Bad Request\", \"error_detail\": \"There is an issue with the request\"}"
+  UNAUTHORIZED:
+    responseTemplates:
+      application/json: "{\"error\": \"Unauthorized\", \"error_detail\": \"You are not authorized to access this endpoint\"}"
+  DEFAULT_5XX:
+    responseTemplates:
+      application/json: "{\"error\": \"Internal Server Error\", \"error_detail\": \"Something went wrong\"}"
+  THROTTLED:
+    responseTemplates:
+      application/json: "{\"error\": \"No available request handler\", \"error_detail\": \"There are no available services to process your request. And maximum configured processing instances has been reached. Your request is now throttled. Please try again.\"}"
+  INTEGRATION_TIMEOUT:
+    responseTemplates:
+      application/json: "{\"error\": \"No available request handler\", \"error_detail\": \"There are no available services to process your request. This increase in demand is resulting more resources being initialised to increase capacity. Please try again in 30 seconds.\"}"

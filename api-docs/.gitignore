@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.vite/
+
+# Local server-URL overrides for sync-specs.sh — committed example only
+scripts/server-urls.env

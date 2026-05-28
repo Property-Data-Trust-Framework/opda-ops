@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: OPDA MRA API
+  description: Mining Remediation Authority coalfield lookup API
+  version: 1.0.0
+
+servers:
+  - url: https://opda-api.local
+    description: OPDA MRA API
+
+paths:
+  /v1/coalfield/{uprn}:
+    get:
+      tags:
+        - Coalfield
+      summary: Check whether a UPRN falls on a coalfield
+      operationId: checkCoalfield
+      parameters:
+        - name: uprn
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{12}$'
+          description: 12-digit Unique Property Reference Number
+      responses:
+        '200':
+          description: Coalfield status (wrapped in a provenance envelope when signing is configured)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignedCoalfieldResponse'
+        '400':
+          description: Invalid UPRN format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+      security:
+        - authorizer: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${service_invoke_arn}
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - authorizer: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${service_invoke_arn}
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+
+components:
+  schemas:
+    SignedCoalfieldResponse:
+      type: object
+      required: [data, provenance]
+      properties:
+        data:
+          $ref: '#/components/schemas/CoalfieldResponse'
+        provenance:
+          $ref: '#/components/schemas/Provenance'
+
+    Provenance:
+      type: object
+      required: [alg, kid, signature, signedAt, payloadHash]
+      properties:
+        alg:
+          type: string
+          example: RS256
+        kid:
+          type: string
+        signature:
+          type: string
+          description: Base64url-encoded RS256 signature over the JCS-canonicalized data payload.
+        signedAt:
+          type: string
+          format: date-time
+        payloadHash:
+          $ref: '#/components/schemas/PayloadHash'
+
+    PayloadHash:
+      type: object
+      required: [alg, value]
+      properties:
+        alg:
+          type: string
+          example: SHA-256
+        value:
+          type: string
+          description: Base64url-encoded SHA-256 hash of the JCS-canonicalized data payload.
+
+    CoalfieldResponse:
+      type: object
+      required:
+        - uprn
+        - coalfieldStatus
+      properties:
+        uprn:
+          type: string
+          example: "100023336956"
+        coalfieldStatus:
+          type: string
+          enum:
+            - ON_COALFIELD
+            - OFF_COALFIELD
+            - UNKNOWN
+          example: ON_COALFIELD
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: healthy
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+
+  securitySchemes:
+    authorizer:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: custom
+      x-amazon-apigateway-authorizer:
+        authorizerUri: ${authorizer_invoke_arn}
+        authorizerResultTtlInSeconds: 0
+        type: request
+        identitySource: method.request.header.Authorization
+
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseTemplates:
+      application/json: "{\"error\": \"Bad Request\", \"error_detail\": \"There is an issue with the request\"}"
+  UNAUTHORIZED:
+    responseTemplates:
+      application/json: "{\"error\": \"Unauthorized\", \"error_detail\": \"You are not authorized to access this endpoint\"}"
+  DEFAULT_5XX:
+    responseTemplates:
+      application/json: "{\"error\": \"Internal Server Error\", \"error_detail\": \"Something went wrong\"}"
+  THROTTLED:
+    responseTemplates:
+      application/json: "{\"error\": \"No available request handler\", \"error_detail\": \"Request throttled. Please try again.\"}"
+  INTEGRATION_TIMEOUT:
+    responseTemplates:
+      application/json: "{\"error\": \"No available request handler\", \"error_detail\": \"Service is initialising. Please try again in 30 seconds.\"}"

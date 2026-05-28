@@ -1,0 +1,11 @@
+meta {
+  name: Validate UPRN
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/uprn/validate/{{uprn}}
+  body: none
+  auth: inherit
+}
