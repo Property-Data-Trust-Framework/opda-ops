@@ -111,5 +111,5 @@ variable "shared_services_ecr_base" {
 variable "proxy_path_prefix" {
   type        = string
   description = "Path prefix this API registers in the shared proxy routing table"
-  default     = "/v1/example"
+  default     = "/v1/placeholder"
 }

@@ -12,25 +12,19 @@ x-amazon-apigateway-tags:
     description: Service health operations
 
 paths:
-  /uprn/validate/{uprn}:
+  /v1/placeholder:
     get:
       tags:
-        - UPRN
-      summary: Validate a UPRN
-      operationId: validateUprn
-      parameters:
-        - name: uprn
-          in: path
-          required: true
-          schema:
-            type: string
+        - Placeholder
+      summary: Placeholder endpoint
+      operationId: getPlaceholder
       responses:
         '200':
-          description: Validation result
+          description: Placeholder response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UprnValidationResponse'
+                $ref: '#/components/schemas/PlaceholderResponse'
         '401':
           description: Unauthorized
         '403':
@@ -74,14 +68,14 @@ paths:
 
 components:
   schemas:
-    UprnValidationResponse:
+    PlaceholderResponse:
       type: object
       required:
-        - valid
+        - message
       properties:
-        valid:
-          type: boolean
-          example: true
+        message:
+          type: string
+          example: placeholder
 
     HealthResponse:
       type: object

@@ -181,18 +181,15 @@ AUTHORIZER_TAG=$(aws ecr describe-images \
   | python3 -c "import sys,json; tags=json.loads(sys.stdin.read()); print(next((t[len('authorizer-'):] for t in tags if t.startswith('authorizer-') and t!='authorizer-latest'), ''), end='')" 2>/dev/null || true)
 set_var AUTHORIZER_IMAGE_TAG "$AUTHORIZER_TAG"
 
-MTLS_TAG=$(aws ecr describe-images \
-  --repository-name opda-shared-services \
-  --image-ids imageTag=mtls-latest \
-  --query 'imageDetails[0].imageTags' \
-  --output json 2>/dev/null \
-  | python3 -c "import sys,json; tags=json.loads(sys.stdin.read()); print(next((t[len('mtls-'):] for t in tags if t.startswith('mtls-') and t!='mtls-latest'), ''), end='')" 2>/dev/null || true)
-set_var MTLS_PROXY_IMAGE_TAG "$MTLS_TAG"
-
 set_var OAUTH_ISSUER "https://auth.directory.pdtf.raidiam.io"
 
 set_var BYPASS_AUTH "false"
 set_var EXTERNAL_DOMAIN_NAME ""
+
+# Derive a sensible default proxy path prefix from the repo name.
+# Pattern: opda-<middle>-api → /v1/<middle>  (e.g. opda-armalytix-api → /v1/armalytix)
+PROXY_PREFIX="/v1/$(echo "$REPO_NAME" | sed 's/^opda-//' | sed 's/-api$//')"
+set_var PROXY_PATH_PREFIX "$PROXY_PREFIX"
 
 echo ""
 
@@ -282,8 +279,8 @@ if [[ "$IAM_BOOTSTRAP_DONE" == false ]]; then
   echo "  5. Push to main — the pipeline will deploy the infrastructure."
   echo ""
   echo "  6. After the first successful deploy, run prepare-bruno-env.sh from the repo root:"
-  echo "       cd $TARGET_DIR && ./scripts/prepare-bruno-env.sh"
-  echo "     This reads the NLB hostname from Terraform and writes scripts/bruno.env."
+  echo "       cd $TARGET_DIR && ./scripts/prepare-bruno-env.sh --client-id <your-client-id>"
+  echo "     This writes scripts/bruno.env for the shared proxy endpoint."
   echo "     Share scripts/bruno.env with developers who can then run:"
   echo "       ./scripts/apply-bruno-env.sh"
   echo ""
@@ -297,8 +294,8 @@ else
   echo "  4. Push to main — the pipeline will deploy the infrastructure."
   echo ""
   echo "  5. After the first successful deploy, run prepare-bruno-env.sh from the repo root:"
-  echo "       cd $TARGET_DIR && ./scripts/prepare-bruno-env.sh"
-  echo "     This reads the NLB hostname from Terraform and writes scripts/bruno.env."
+  echo "       cd $TARGET_DIR && ./scripts/prepare-bruno-env.sh --client-id <your-client-id>"
+  echo "     This writes scripts/bruno.env for the shared proxy endpoint."
   echo "     Share scripts/bruno.env with developers who can then run:"
   echo "       ./scripts/apply-bruno-env.sh"
   echo ""

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
 using MyApi.Auth;
@@ -33,9 +32,10 @@ app.UseMiddleware<FapiMiddleware>();
 
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
 
-app.MapGet("/uprn/validate/{uprn}", (string uprn) =>
+// TEMPLATE PLACEHOLDER — replace with your API's real endpoint.
+app.MapGet("/v1/placeholder", () =>
 {
-    var data = new { valid = Regex.IsMatch(uprn, @"^\d{12}$") };
+    var data = new { message = "placeholder" };
     return provenanceSigner is not null
         ? Results.Ok(provenanceSigner.Sign(data))
         : Results.Ok(data);

@@ -1,6 +1,6 @@
 // TEMPLATE PLACEHOLDER — delete this file and replace with your API's endpoint tests.
-// These tests cover the scaffold UPRN validation stub in Program.cs. Once you replace
-// that stub with your real endpoint, these tests will fail with 404 and should be removed.
+// These tests cover the scaffold placeholder endpoint in Program.cs. Once you replace
+// that placeholder with your real endpoint, these tests will fail with 404 and should be removed.
 
 using System.Net;
 using System.Net.Http.Headers;
@@ -22,27 +22,21 @@ public class PlaceholderEndpointTests : IClassFixture<PlaceholderEndpointTests.T
             new AuthenticationHeaderValue("Bearer", JsonToken(scope: "land-registry"));
     }
 
-    [Theory]
-    [InlineData("123456789012", true)]
-    [InlineData("000000000000", true)]
-    [InlineData("12345678901",  false)] // 11 digits
-    [InlineData("1234567890123", false)] // 13 digits
-    [InlineData("12345678901a", false)] // non-numeric
-    [InlineData("abcdefghijkl", false)] // all letters
-    public async Task Validate_ReturnsExpectedResult(string uprn, bool expectedValid)
+    [Fact]
+    public async Task GetPlaceholder_Returns200()
     {
-        var response = await _client.GetAsync($"/uprn/validate/{uprn}");
+        var response = await _client.GetAsync("/v1/placeholder");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
         var body = JsonSerializer.Deserialize<JsonElement>(await response.Content.ReadAsStringAsync());
-        Assert.Equal(expectedValid, body.GetProperty("valid").GetBoolean());
+        Assert.Equal("placeholder", body.GetProperty("message").GetString());
     }
 
     [Fact]
     public async Task NoAuthorization_Returns401()
     {
         _client.DefaultRequestHeaders.Authorization = null;
-        var response = await _client.GetAsync("/uprn/validate/123456789012");
+        var response = await _client.GetAsync("/v1/placeholder");
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -51,7 +45,7 @@ public class PlaceholderEndpointTests : IClassFixture<PlaceholderEndpointTests.T
     {
         _client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", JsonToken(scope: "other:scope"));
-        var response = await _client.GetAsync("/uprn/validate/123456789012");
+        var response = await _client.GetAsync("/v1/placeholder");
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
