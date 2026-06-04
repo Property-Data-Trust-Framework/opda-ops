@@ -1,0 +1,27 @@
+meta {
+  name: Get Survey Documents
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/documents/{{uprn}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has uprn and documents array", function() {
+    expect(res.body).to.have.property("uprn");
+    expect(res.body.documents).to.be.an("array");
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}

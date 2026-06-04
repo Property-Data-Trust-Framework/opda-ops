@@ -1,0 +1,28 @@
+{
+  "version": "1",
+  "name": "OPDA API Suite",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ],
+  "clientCertificates": {
+    "enabled": true,
+    "certs": [
+      {
+        "domain": "dev.api.smartpropdata.org.uk",
+        "type": "cert",
+        "certFilePath": "../keys/client/transport/transport.crt",
+        "keyFilePath": "../keys/client/transport/transport.key",
+        "passphrase": ""
+      },
+      {
+        "domain": "matls-auth.directory.pdtf.raidiam.io",
+        "type": "cert",
+        "certFilePath": "../keys/client/transport/transport.crt",
+        "keyFilePath": "../keys/client/transport/transport.key",
+        "passphrase": ""
+      }
+    ]
+  }
+}

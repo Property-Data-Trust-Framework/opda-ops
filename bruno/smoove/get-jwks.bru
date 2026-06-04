@@ -1,0 +1,22 @@
+meta {
+  name: Get JWKS
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/v1/conveyancing-events/jwks
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has RS256 keys", function() {
+    expect(res.body.keys).to.be.an("array").and.not.be.empty;
+    expect(res.body.keys[0].alg).to.equal("RS256");
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Get Proof of Funds
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/source-of-funds/{{clientRequestId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("proof of funds result is PASS or FAIL", function() {
+    expect(["PASS", "FAIL"]).to.include(res.body.proofOfFunds.result);
+  });
+
+  test("at least one account returned", function() {
+    expect(res.body.accounts.length).to.be.greaterThan(0);
+  });
+}

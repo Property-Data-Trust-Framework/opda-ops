@@ -1,0 +1,26 @@
+meta {
+  name: Find Places
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/places/find?query={{query}}&maxresults=5
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response data is an array", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}

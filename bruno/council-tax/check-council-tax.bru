@@ -1,0 +1,32 @@
+meta {
+  name: Check Council Tax Band
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/council-tax/{{uprn}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has uprn and councilTaxBand", function() {
+    expect(res.body.data).to.have.property("uprn");
+    expect(res.body.data).to.have.property("councilTaxBand");
+  });
+
+  test("councilTaxBand is a valid band or UNKNOWN", function() {
+    const validBands = ["A", "B", "C", "D", "E", "F", "G", "H", "UNKNOWN"];
+    expect(validBands).to.include(res.body.data.councilTaxBand);
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}

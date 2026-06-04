@@ -1,0 +1,28 @@
+meta {
+  name: EPC Domestic Search
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/epc/{{uprn}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has EPC fields", function() {
+    expect(res.body.data).to.have.property("uprn");
+    expect(res.body.data).to.have.property("currentEnergyEfficiencyBand");
+    expect(res.body.data).to.have.property("certificateNumber");
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}

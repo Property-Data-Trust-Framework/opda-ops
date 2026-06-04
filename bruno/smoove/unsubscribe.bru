@@ -1,0 +1,17 @@
+meta {
+  name: Unsubscribe
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/v1/conveyancing-events/subscriptions/{{subscriptionId}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 204", function() {
+    expect(res.status).to.equal(204);
+  });
+}

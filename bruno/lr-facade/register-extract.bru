@@ -1,0 +1,45 @@
+meta {
+  name: Register Extract
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/opda/official-copies/v1/register-extract
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "messageId": "170100",
+    "externalReference": "extRef0001",
+    "customerReference": "custRef0001",
+    "titleNumber": "{{titleNumber}}",
+    "expectedPrice": 10,
+    "titleKnownOfficialCopy": {
+      "continueIfTitleIsClosedAndContinued": false,
+      "notifyIfPendingFirstRegistration": false,
+      "notifyIfPendingApplication": false,
+      "sendBackDated": false,
+      "continueIfActualFeeExceedsExpected": true,
+      "includeTitlePlanIndicator": false
+    }
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has OC register data", function() {
+    expect(res.body.data).to.have.property("OCSummaryData");
+    expect(res.body.data).to.have.property("OCRegisterData");
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}

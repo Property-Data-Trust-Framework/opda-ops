@@ -37,6 +37,16 @@ const sources = [
     title: 'Survey Shack (.NET)',
     slug: 'survey-shack-api',
   },
+  {
+    url: '/specs/opda-armalytix-api.yaml',
+    title: 'Armalytix Proof of Funds (.NET)',
+    slug: 'armalytix-api',
+  },
+  {
+    url: '/specs/opda-smoove-api.yaml',
+    title: 'Smoove Conveyancing Events (.NET)',
+    slug: 'smoove-api',
+  },
 ];
 
 export function App() {

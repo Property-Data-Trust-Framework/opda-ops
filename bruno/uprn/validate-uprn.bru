@@ -1,0 +1,26 @@
+meta {
+  name: Validate UPRN
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/v1/uprn/validate/{{uprn}}
+  body: none
+  auth: inherit
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has valid field", function() {
+    expect(res.body.data).to.have.property("valid");
+  });
+
+  test("response includes provenance block", function() {
+    expect(res.body).to.have.property("provenance");
+    expect(res.body.provenance.alg).to.equal("RS256");
+  });
+}
