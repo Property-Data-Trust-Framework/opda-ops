@@ -117,6 +117,7 @@ AUTO_SECRETS=(
 # Variables auto-resolved from AWS; env file values take precedence if set.
 AUTO_VARS=(
   EXTERNAL_DOMAIN_NAME          # Route53 public hosted zone name
+  SHARED_PROXY_HOST             # Full hostname of the shared mTLS proxy (used for API spec publish)
   SHARED_SERVICES_ECR_BASE      # ECR repository URI for opda-shared-services
   AUTHORIZER_IMAGE_TAG          # SHA of the latest authorizer image
   MTLS_PROXY_IMAGE_TAG          # SHA of the latest mTLS proxy image
@@ -206,6 +207,14 @@ if command -v aws &>/dev/null; then
   else
     echo "  EXTERNAL_HOSTED_ZONE_ID  = (from env file)"
     echo "  EXTERNAL_DOMAIN_NAME     = (from env file)"
+  fi
+
+  # ── Shared proxy host (derived from ENV_NAME + EXTERNAL_DOMAIN_NAME) ─────────
+  if [[ -z "${GH_VAR_SHARED_PROXY_HOST:-}" ]]; then
+    GH_VAR_SHARED_PROXY_HOST="${ENV_NAME}.${GH_VAR_EXTERNAL_DOMAIN_NAME:-api.smartpropdata.org.uk}"
+    echo "  SHARED_PROXY_HOST        = $GH_VAR_SHARED_PROXY_HOST (derived)"
+  else
+    echo "  SHARED_PROXY_HOST        = (from env file)"
   fi
 
   # ── ECR repository URI ───────────────────────────────────────────────────────
