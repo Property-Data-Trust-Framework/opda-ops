@@ -1,0 +1,67 @@
+name: Seed Wiki
+
+# Publishes the markdown in `wiki-seed/` into the GitHub wiki
+# (`<repo>.wiki.git`). The wiki is a SEPARATE git repo — committing to `main`
+# never touches it — so this workflow performs the push for you in CI, which
+# also avoids local `master`/`main` default-branch confusion (the runner clones
+# whatever branch the wiki actually uses and pushes back to it).
+#
+# Trigger:
+#   - workflow_dispatch → manual only. This is a SEED / re-sync, NOT an
+#     auto-publish: it does not run on push, so it never silently clobbers
+#     pages that were edited in-browser. Run it to do the initial population,
+#     or to force the `wiki-seed/` copies back over the live wiki on purpose.
+#
+# Model note: after seeding, the WIKI is the editable source of truth (edit
+# in-browser; the Onboarding PDF rebuilds via the `gollum` event). `wiki-seed/`
+# is the version-controlled initial copy. Re-running this OVERWRITES live pages
+# of the same name with the `wiki-seed/` versions — only do that deliberately.
+#
+# Prerequisite: the wiki must exist. A brand-new repo's wiki has no
+# `.wiki.git` until its first page is created once via the Wiki tab in the UI.
+#
+# This workflow is additive: it copies `wiki-seed/*.md` over the wiki and does
+# NOT delete wiki pages that have no counterpart in `wiki-seed/`.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write          # required to push to the wiki repo
+
+concurrency:
+  group: seed-wiki
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout opda-ops (source of wiki-seed/)
+        uses: actions/checkout@v4
+
+      - name: Clone the wiki (its real default branch)
+        run: |
+          git clone \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" \
+            wiki
+
+      - name: Copy wiki-seed pages into the wiki
+        run: |
+          cp wiki-seed/*.md wiki/
+          echo "Pages now staged in the wiki clone:"
+          ls -1 wiki/*.md
+
+      - name: Commit and push to the wiki
+        working-directory: wiki
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already matches wiki-seed/ — nothing to push."
+          else
+            git commit -m "Seed wiki from wiki-seed/ (Seed Wiki workflow, run ${{ github.run_number }})"
+            git push
+            echo "Wiki updated. The gollum event will rebuild the onboarding PDF."
+          fi
