@@ -1,0 +1,141 @@
+/* OPDA-branded print stylesheet for the onboarding-guide PDF.
+   Tokens mirror the Property Data Visualiser SPA design system
+   (amber #f4a81d primary, navy #2d2a45 anchor, Noto Serif + Mukta + IBM Plex Mono). */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:wght@500;600;700&family=Mukta:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --amber: #f4a81d;
+  --amber-d: #b9790a;
+  --navy: #2d2a45;
+  --ink: #1e1e24;
+  --ink-2: #4a4a55;
+  --ink-3: #8b8a93;
+  --line: #e6e4de;
+  --bg: #f7f5f1;
+  --ok: #1f8a5b;
+}
+
+/* ---- Base body ---- */
+body, .md-typeset {
+  /* 'DejaVu Sans' is the glyph-rich fallback: Mukta lacks some glyphs (e.g. the
+     U+2192 arrow → used in flow descriptions), which otherwise drop out of the
+     PDF as blank gaps. Requires fonts-dejavu-core on the build runner. */
+  font-family: 'Mukta', 'DejaVu Sans', system-ui, sans-serif;
+  color: var(--ink-2);
+  font-size: 10.5pt;
+  line-height: 1.55;
+}
+
+/* ---- Headings (serif display) ---- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  font-family: 'Noto Serif', Georgia, serif;
+  color: var(--ink);
+  font-weight: 600;
+}
+.md-typeset h1 {
+  color: var(--navy);
+  font-size: 22pt;
+  border-bottom: 2px solid var(--amber);
+  padding-bottom: 6px;
+  page-break-before: always;
+}
+.md-typeset h1:first-of-type { page-break-before: avoid; }
+.md-typeset h2 {
+  font-size: 15pt;
+  margin-top: 1.4em;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 3px;
+}
+.md-typeset h3 { font-size: 12pt; color: var(--amber-d); }
+
+/* ---- Eyebrow-style mono accents ---- */
+.md-typeset code,
+.md-typeset kbd {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9pt;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 4px;
+  color: var(--ink);
+}
+.md-typeset pre code {
+  border: none;
+  padding: 0;
+}
+.md-typeset pre {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--amber);
+  border-radius: 8px;
+  padding: 10px 12px;
+  page-break-inside: avoid;
+}
+
+/* ---- Links ---- */
+.md-typeset a { color: var(--amber-d); text-decoration: none; }
+
+/* ---- Tables ---- */
+.md-typeset table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+}
+.md-typeset th {
+  background: var(--navy);
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 6px 8px;
+}
+.md-typeset td {
+  border-bottom: 1px solid var(--line);
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+/* ---- Admonitions (notes/warnings) ---- */
+.md-typeset .admonition {
+  border-left: 3px solid var(--amber);
+  background: #fdf3dc;
+  border-radius: 6px;
+  page-break-inside: avoid;
+}
+
+/* ---- Cover page (mkdocs-with-pdf) ---- */
+#doc-cover {
+  background: var(--navy);
+  color: #fff;
+}
+.md-pdf-cover-title,
+#doc-cover .title {
+  font-family: 'Noto Serif', serif !important;
+  color: #fff !important;
+}
+.md-pdf-cover-subtitle,
+#doc-cover .subtitle {
+  color: var(--amber) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ---- Page boxes / footer ---- */
+@page {
+  size: A4;
+  margin: 22mm 18mm;
+  @bottom-center {
+    content: "OPDA Onboarding Guide · " counter(page);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8pt;
+    color: var(--ink-3);
+  }
+}

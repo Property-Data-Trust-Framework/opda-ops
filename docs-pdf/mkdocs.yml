@@ -1,0 +1,51 @@
+# MkDocs config for the onboarding-guide PDF build.
+# Consumed by .github/workflows/onboarding-pdf.yml after it copies the selected
+# wiki pages into build/docs/. Not used to host a live site — the wiki is the
+# living docs; this only produces the PDF deliverable.
+
+site_name: OPDA Onboarding Guide
+docs_dir: docs
+site_dir: site
+
+# Fills the cover's copyright line — without this, mkdocs-with-pdf renders a
+# literal "None" under the author on the cover page.
+copyright: "© Open Property Data Association"
+
+# The pages that make up the onboarding guide, in order. To add a section,
+# copy the wiki page into build/docs/ in the workflow and list it here.
+nav:
+  - Onboarding: index.md
+
+theme:
+  name: material
+  palette:
+    primary: amber          # OPDA amber
+    accent: amber
+  font:
+    text: Mukta             # matches the SPA design system
+    code: IBM Plex Mono
+
+extra_css:
+  - pdf.css
+
+plugins:
+  - search
+  - with-pdf:
+      author: Open Property Data Association
+      cover: true
+      cover_title: OPDA Onboarding Guide
+      cover_subtitle: OPDA smart property platform — engineer onboarding
+      output_path: pdf/onboarding.pdf
+      # Only run the (slower) PDF render when the env var is set, so local
+      # `mkdocs serve` stays fast.
+      enabled_if_env: ENABLE_PDF_EXPORT
+      toc_level: 3
+      ordered_chapter_level: 2
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - tables

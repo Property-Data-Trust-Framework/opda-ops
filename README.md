@@ -5,6 +5,19 @@ Shared operations repo for the OPDA platform. Contains:
 - **Terraform** — one-time AWS account bootstrap (S3 state bucket, OIDC provider)
 - **Scripts** — bootstrap and manage API repos from zero to deployed
 - **Templates** — `dotnet new` template for new OPDA API repos
+- **Docs pipeline** — `docs-pdf/` builds the onboarding PDF from the wiki
+
+---
+
+## Documentation & PDF pipeline
+
+The living documentation is the **GitHub wiki** (Runbook, Key-Learnings, ADRs,
+Production-Readiness, cheatsheets) — it's the source of truth and survives the AWS
+account being torn down. First drafts are seeded from [`wiki-seed/`](wiki-seed/).
+
+- **PDF pipeline** (how the onboarding PDF is built + published): [`docs-pdf/README.md`](docs-pdf/README.md)
+- **Build the PDF locally** (cross-platform): [`docs-pdf/BUILDING.md`](docs-pdf/BUILDING.md)
+- **Making this repo/wiki public**: [`PUBLISHING.md`](PUBLISHING.md)
 
 ---
 
@@ -279,7 +292,7 @@ gh repo delete Property-Data-Trust-Framework/<repo-name> --yes
 Delete resources in this order to respect dependencies. Replace `<name>` with the repo name (e.g. `opda-template-test-one`).
 
 **1. API Gateway**
-- REST API named `<name>-facade` (deletes stages and deployments with it)
+- REST API named `<name>` (deletes stages and deployments with it)
 
 **2. Lambda functions**
 - `<name>` (app Lambda)
@@ -291,7 +304,7 @@ Delete resources in this order to respect dependencies. Replace `<name>` with th
 - Task definition: deregister all revisions of `<name>-mtls` (or similar prefix)
 
 **4. NLB**
-- Load balancer: `<name>-facade`
+- Load balancer: `<name>`
 - Target group: `<name>-mtls-tg`
 
 **5. ECR**
@@ -308,12 +321,12 @@ Delete resources in this order to respect dependencies. Replace `<name>` with th
 - `<name>-lambda`
 - `<name>-authorizer-role`
 - `<name>-ecs-task-execution-role`
-- `<name>-facade-apigw-logging-role`
+- `<name>-apigw-logging-role`
 
 **8. CloudWatch log groups**
 - `/aws/lambda/<name>` (app Lambda)
 - `/aws/lambda/<name>-authorizer`
-- `/aws/apigateway/<name>-facade-access-logs`
+- `/aws/apigateway/<name>-access-logs`
 - `/ecs/<name>-mtls`
 
 **9. VPC and networking** — wait until Lambda and ECS ENIs are fully detached before deleting (can take 15–20 minutes after step 2–3)

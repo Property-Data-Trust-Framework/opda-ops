@@ -1,0 +1,83 @@
+name: Onboarding PDF
+
+# Regenerates the onboarding guide PDF from the wiki and publishes it as a
+# GitHub Release asset (tag: `docs`). 100% GitHub — no AWS dependency, so the
+# artifact survives the sandbox account being torn down.
+#
+# Triggers:
+#   - gollum            → fires whenever any wiki page is created/updated
+#   - workflow_dispatch → manual "rebuild now" button
+#
+# NOTE: for the `gollum` trigger to work, THIS FILE must be present on the
+# repo's default branch (main).
+
+on:
+  gollum:
+  workflow_dispatch:
+
+permissions:
+  contents: write          # required to create/update the release asset
+
+concurrency:
+  group: onboarding-pdf
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout opda-ops (build config + stylesheet)
+        uses: actions/checkout@v4
+
+      - name: Clone the wiki (the source of truth)
+        run: |
+          git clone --depth 1 \
+            "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.wiki.git" \
+            wiki
+
+      - name: Assemble the onboarding build dir
+        run: |
+          mkdir -p build/docs
+          cp docs-pdf/mkdocs.yml build/mkdocs.yml
+          cp docs-pdf/pdf.css    build/docs/pdf.css
+          # Select which wiki pages make up the onboarding guide. Add more here
+          # (and to the `nav:` in docs-pdf/mkdocs.yml) to extend the guide.
+          # PDF-only rewrite: MkDocs doesn't grok GitHub `[[wikilink]]` syntax, so
+          # they'd render as literal `[[Runbook]]` text. Rewrite to real links to
+          # the wiki pages. Source stays untouched — the wiki needs the [[...]] form.
+          sed -E 's#\[\[([A-Za-z-]+)\]\]#[\1](https://github.com/${{ github.repository }}/wiki/\1)#g' \
+            wiki/Onboarding.md > build/docs/index.md
+
+      - name: Install system deps for WeasyPrint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpango-1.0-0 libpangocairo-1.0-0 \
+            libgdk-pixbuf-2.0-0 libffi-dev libcairo2 fonts-liberation \
+            fonts-dejavu-core   # glyph-rich fallback for arrows (→) missing from Mukta
+
+      - name: Install MkDocs + PDF plugin
+        run: pip install mkdocs-material "mkdocs-with-pdf>=0.9"
+
+      - name: Build PDF
+        working-directory: build
+        env:
+          ENABLE_PDF_EXPORT: "1"
+        run: |
+          mkdocs build
+          test -f site/pdf/onboarding.pdf
+
+      - name: Publish to the `docs` release (stable, permanent URL)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ASSET="build/site/pdf/onboarding.pdf"
+          if gh release view docs >/dev/null 2>&1; then
+            gh release upload docs "$ASSET" --clobber
+          else
+            gh release create docs "$ASSET" \
+              --title "Documentation artifacts" \
+              --notes "Auto-generated onboarding guide. Always reflects the latest wiki content. Built by .github/workflows/onboarding-pdf.yml."
+          fi
+
+      # Stable link to put in the wiki:
+      #   https://github.com/${{ github.repository }}/releases/download/docs/onboarding.pdf
