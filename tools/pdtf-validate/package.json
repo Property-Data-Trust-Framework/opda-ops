@@ -1,0 +1,12 @@
+{
+  "name": "pdtf-validate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PDTF v3.5 conformance check for the OPDA APIs' default (propertyPack) responses.",
+  "scripts": {
+    "validate": "node validate.js"
+  },
+  "dependencies": {
+    "@pdtf/schemas": "^3.5.0"
+  }
+}
