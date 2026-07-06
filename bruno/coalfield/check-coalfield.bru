@@ -14,12 +14,25 @@ tests {
   test("status is 200", function() {
     expect(res.status).to.equal(200);
   });
-  
-  test("response has uprn and coalfieldStatus", function() {
-    expect(res.body.data).to.have.property("uprn");
-    expect(res.body.data).to.have.property("coalfieldStatus");
+
+  test("default response is a PDTF v3.5 propertyPack fragment", function() {
+    expect(res.body.data).to.have.property("propertyPack");
+    const coalMining = res.body.data.propertyPack.environmentalIssues.coalMining;
+    expect(coalMining).to.be.an("object");
   });
-  
+
+  test("legacy flat shape is gone", function() {
+    expect(res.body.data).to.not.have.property("coalfieldStatus");
+    expect(res.body.data).to.not.have.property("uprn");
+  });
+
+  test("riskIndicator, when present, is Yes or No", function() {
+    const risk = res.body.data.propertyPack.environmentalIssues.coalMining.riskIndicator;
+    if (risk !== undefined) {
+      expect(["Yes", "No"]).to.include(risk);
+    }
+  });
+
   test("response includes provenance block", function() {
     expect(res.body).to.have.property("provenance");
     expect(res.body.provenance.alg).to.equal("RS256");

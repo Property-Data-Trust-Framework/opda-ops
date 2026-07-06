@@ -1,0 +1,40 @@
+meta {
+  name: Property Pack (Full)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{pdiBaseUrl}}/opda-opaque/appraisal/v1/property-pack/uprn
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{pdiBearerToken}}
+}
+
+body:json {
+  {
+    "uprn": "{{uprn}}"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has propertyPack", function() {
+    expect(res.body).to.have.property("propertyPack");
+  });
+
+  test("response has verifiedClaims", function() {
+    expect(res.body).to.have.property("verifiedClaims");
+    expect(res.body.verifiedClaims).to.be.an("array");
+  });
+
+  test("jws signature header present", function() {
+    expect(res.headers).to.have.property("x-jws-signature");
+  });
+}

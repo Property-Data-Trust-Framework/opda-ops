@@ -1,0 +1,28 @@
+meta {
+  name: Simulate Completion Set
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{smooveDirectBaseUrl}}/internal/simulate/completion-set
+  body: json
+  auth: none
+}
+
+headers {
+  X-Api-Key: {{smooveApiKey}}
+}
+
+body:json {
+  {
+    "transactionDid": "did:web:example.com:transaction:test-001",
+    "completionDate": "2026-06-30T12:00:00Z"
+  }
+}
+
+tests {
+  test("status is 200 or 204", function() {
+    expect([200, 204]).to.include(res.status);
+  });
+}

@@ -33,9 +33,20 @@ tests {
     expect(res.status).to.equal(200);
   });
 
-  test("response has OC register data", function() {
-    expect(res.body.data).to.have.property("OCSummaryData");
-    expect(res.body.data).to.have.property("OCRegisterData");
+  test("default response is a PDTF v3.5 propertyPack fragment", function() {
+    expect(res.body.data).to.have.property("propertyPack");
+    const titles = res.body.data.propertyPack.titlesToBeSold;
+    expect(titles).to.be.an("array").and.to.have.length.greaterThan(0);
+    const registerExtract = titles[0].registerExtract;
+    expect(registerExtract).to.have.property("ocSummaryData");
+    expect(registerExtract).to.have.property("ocRegisterData");
+  });
+
+  test("keys are camelCased and legacy flat shape is gone", function() {
+    expect(res.body.data).to.not.have.property("OCSummaryData");
+    const registerExtract = res.body.data.propertyPack.titlesToBeSold[0].registerExtract;
+    expect(registerExtract).to.not.have.property("OCSummaryData");
+    expect(registerExtract.ocSummaryData.title).to.have.property("titleNumber");
   });
 
   test("response includes provenance block", function() {

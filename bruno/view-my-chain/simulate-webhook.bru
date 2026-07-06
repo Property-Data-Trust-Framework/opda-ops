@@ -1,0 +1,29 @@
+meta {
+  name: Simulate Webhook Delivery
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{vmcBaseUrl}}/api/v1/webhook/simulate
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{vmcBearerToken}}
+}
+
+body:json {
+  {
+    "uprn": "{{uprn}}",
+    "eventType": "milestone.updated",
+    "callbackUrl": "{{vmcCallbackUrl}}"
+  }
+}
+
+tests {
+  test("status is 200 or 202", function() {
+    expect([200, 202]).to.include(res.status);
+  });
+}

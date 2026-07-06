@@ -1,0 +1,35 @@
+meta {
+  name: Verified Claims
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{pdiBaseUrl}}/opda-opaque/claims/{{uprn}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{pdiBearerToken}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response is an array", function() {
+    expect(res.body).to.be.an("array");
+  });
+
+  test("claims have uk_pdtf trust framework", function() {
+    if (res.body.length > 0) {
+      expect(res.body[0].verification.trust_framework).to.equal("uk_pdtf");
+    }
+  });
+
+  test("jws signature header present", function() {
+    expect(res.headers).to.have.property("x-jws-signature");
+  });
+}

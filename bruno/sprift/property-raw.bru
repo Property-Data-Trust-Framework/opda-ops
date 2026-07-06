@@ -1,0 +1,45 @@
+meta {
+  name: Property Raw Data (V2)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{spriftBaseUrl}}/property/{{uprn}}/search
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{spriftBearerToken}}
+  x-api-key: {{spriftApiKey}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has status true", function() {
+    expect(res.body.status).to.equal(true);
+  });
+
+  test("response has propertyDetails", function() {
+    expect(res.body).to.have.property("propertyDetails");
+    expect(res.body.propertyDetails).to.have.property("property_uprn");
+  });
+
+  test("response has epc", function() {
+    expect(res.body).to.have.property("epc");
+    expect(res.body.epc).to.have.property("epc_current_energy_rating");
+  });
+
+  test("response has councilTax", function() {
+    expect(res.body).to.have.property("councilTax");
+    expect(res.body.councilTax).to.have.property("council_tax_band");
+  });
+
+  test("response has floodRisk", function() {
+    expect(res.body).to.have.property("floodRisk");
+  });
+}

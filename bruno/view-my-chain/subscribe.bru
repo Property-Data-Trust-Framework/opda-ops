@@ -1,0 +1,29 @@
+meta {
+  name: Subscribe to Webhooks
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{vmcBaseUrl}}/api/v1/webhook/subscribe
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{vmcBearerToken}}
+}
+
+body:json {
+  {
+    "participantName": "OPDA Sandbox",
+    "callbackUrl": "{{vmcCallbackUrl}}",
+    "events": ["milestone.updated", "fallthrough"]
+  }
+}
+
+tests {
+  test("status is 200 or 201", function() {
+    expect([200, 201]).to.include(res.status);
+  });
+}

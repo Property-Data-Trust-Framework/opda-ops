@@ -1,0 +1,42 @@
+meta {
+  name: Material Information (Parts A / B / C)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{spriftBaseUrl}}/metainformation/v1.0.0/uprn/{{uprn}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{spriftBearerToken}}
+  x-api-key: {{spriftApiKey}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("no error", function() {
+    expect(res.body.error).to.be.null;
+  });
+
+  test("items has uprn", function() {
+    expect(res.body.items).to.have.property("uprn");
+  });
+
+  test("items has Part A (financial/tenure)", function() {
+    expect(res.body.items).to.have.property("A");
+  });
+
+  test("items has Part B (physical)", function() {
+    expect(res.body.items).to.have.property("B");
+  });
+
+  test("items has Part C (environmental/planning)", function() {
+    expect(res.body.items).to.have.property("C");
+  });
+}

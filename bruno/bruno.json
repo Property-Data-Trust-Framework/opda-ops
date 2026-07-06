@@ -22,6 +22,27 @@
         "certFilePath": "../keys/client/transport/transport.crt",
         "keyFilePath": "../keys/client/transport/transport.key",
         "passphrase": ""
+      },
+      {
+        "domain": "admin.demo3.viewmychain.com",
+        "type": "cert",
+        "certFilePath": "../keys/client/transport/transport.crt",
+        "keyFilePath": "../keys/client/transport/transport.key",
+        "passphrase": ""
+      },
+      {
+        "domain": "sandbox-pdtf.propertydealsinsight.com",
+        "type": "cert",
+        "certFilePath": "../keys/client/transport/transport.crt",
+        "keyFilePath": "../keys/client/transport/transport.key",
+        "passphrase": ""
+      },
+      {
+        "domain": "opdatest.sprift.com",
+        "type": "cert",
+        "certFilePath": "../keys/client/transport/transport.crt",
+        "keyFilePath": "../keys/client/transport/transport.key",
+        "passphrase": ""
       }
     ]
   }

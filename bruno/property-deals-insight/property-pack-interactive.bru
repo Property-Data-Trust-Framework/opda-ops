@@ -1,0 +1,33 @@
+meta {
+  name: Property Pack (Interactive + PDF)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{pdiBaseUrl}}/opda-opaque/appraisal/v1/property-pack/interactive/uprn
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{pdiBearerToken}}
+}
+
+body:json {
+  {
+    "uprn": "{{uprn}}"
+  }
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has report URLs", function() {
+    expect(res.body).to.satisfy(function(b) {
+      return b.reportUrl || b.pdfUrl || b.interactiveUrl || b.propertyPack;
+    });
+  });
+}

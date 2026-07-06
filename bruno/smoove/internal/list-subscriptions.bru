@@ -1,0 +1,25 @@
+meta {
+  name: List Subscriptions
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{smooveDirectBaseUrl}}/internal/subscriptions
+  body: none
+  auth: none
+}
+
+headers {
+  X-Api-Key: {{smooveApiKey}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response is an array", function() {
+    expect(res.body).to.be.an("array");
+  });
+}

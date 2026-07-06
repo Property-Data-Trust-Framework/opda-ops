@@ -1,0 +1,40 @@
+meta {
+  name: Comparables (For Sale — Available)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{spriftBaseUrl}}/property/{{uprn}}/available?searchDistance=0.5&limit=10
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{spriftBearerToken}}
+  x-api-key: {{spriftApiKey}}
+}
+
+tests {
+  test("status is 200", function() {
+    expect(res.status).to.equal(200);
+  });
+
+  test("response has status true", function() {
+    expect(res.body.status).to.equal(true);
+  });
+
+  test("properties is an array", function() {
+    expect(res.body).to.have.property("properties");
+    expect(res.body.properties).to.be.an("array");
+  });
+
+  test("comparables have expected shape", function() {
+    if (res.body.properties.length > 0) {
+      const p = res.body.properties[0];
+      expect(p).to.have.property("uprn");
+      expect(p).to.have.property("price");
+      expect(p).to.have.property("full_address");
+    }
+  });
+}

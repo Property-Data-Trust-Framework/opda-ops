@@ -1,0 +1,36 @@
+meta {
+  name: Simulate TID Received
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{smooveDirectBaseUrl}}/internal/simulate/tid-received
+  body: json
+  auth: none
+}
+
+headers {
+  X-Api-Key: {{smooveApiKey}}
+}
+
+body:json {
+  {
+    "transactionDid": "did:web:example.com:transaction:test-001",
+    "tid": {
+      "titleNumber": "EXC10010",
+      "registrationDate": "2026-06-30",
+      "proprietors": ["Mr Robert Malytix"],
+      "tenure": "freehold",
+      "propertyAddress": "52 Festive Road, London",
+      "priceStated": "£150,000",
+      "classOfTitle": "absolute"
+    }
+  }
+}
+
+tests {
+  test("status is 200 or 204", function() {
+    expect([200, 204]).to.include(res.status);
+  });
+}
