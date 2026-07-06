@@ -1,0 +1,47 @@
+name: PDTF validate
+
+# Checks that the OPDA APIs' PDTF v3.5 mapping still conforms to the official
+# @pdtf/schemas v3 schema. Runs the tool in tools/pdtf-validate (see its
+# README). Fails the build on any *structural* problem (a shape the schema
+# rejects) — this is what would have caught the MRA coalMining nesting bug.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/pdtf-validate/**"
+      - ".github/workflows/pdtf-validate.yml"
+  pull_request:
+    paths:
+      - "tools/pdtf-validate/**"
+      - ".github/workflows/pdtf-validate.yml"
+  schedule:
+    # Mondays 06:00 UTC — surface upstream @pdtf/schemas changes proactively.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tools/pdtf-validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # PR / push / dispatch: validate against the pinned schema version.
+      - name: Install dependencies (pinned)
+        run: npm ci
+
+      # Weekly drift check: also test against the latest published schema so a
+      # breaking upstream release is surfaced before we choose to bump.
+      - name: Pull latest published schema (scheduled only)
+        if: github.event_name == 'schedule'
+        run: npm install --no-save @pdtf/schemas@latest
+
+      - name: Validate PDTF v3.5 conformance
+        run: node validate.js
