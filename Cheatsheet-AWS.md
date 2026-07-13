@@ -7,17 +7,17 @@ rotate, teardown) see the [[Runbook]]; for *why* things are shaped this way see
 
 > Substitute `<name>` per API, and `<AWS_ACCOUNT_ID>` with the real account ID.
 
-## ECS (mTLS proxy)
+## ECS (shared mTLS proxy — opda-ops/terraform/shared-proxy)
 
 ```bash
 # Force-redeploy ECS service so the proxy reloads SSM-backed certs
-aws ecs update-service --cluster opda-lr-facade-cluster --service opda-lr-facade-service --force-new-deployment --region eu-west-2
+aws ecs update-service --cluster opda-shared-proxy-dev-cluster --service opda-shared-proxy-dev-service --force-new-deployment --region eu-west-2
 
 # List running tasks for an ECS service
-aws ecs list-tasks --cluster opda-lr-facade-cluster --service-name opda-lr-facade-service --region eu-west-2
+aws ecs list-tasks --cluster opda-shared-proxy-dev-cluster --service-name opda-shared-proxy-dev-service --region eu-west-2
 
 # Describe service: desired/running counts and last deployment status
-aws ecs describe-services --cluster opda-lr-facade-cluster --services opda-lr-facade-service --region eu-west-2
+aws ecs describe-services --cluster opda-shared-proxy-dev-cluster --services opda-shared-proxy-dev-service --region eu-west-2
 ```
 
 ## SSM — cert / credential rotation
@@ -27,24 +27,24 @@ aws ecs describe-services --cluster opda-lr-facade-cluster --services opda-lr-fa
 > ([[ADR-0007-shared-vpc-ssm|ADR-0007]]).
 
 ```bash
-# Transport cert (NLB server cert, presented to consumers)
-aws ssm put-parameter --name /opda-lr-facade/transport_certificate --value file://keys/server.crt --type String --overwrite --region eu-west-2
+# Transport cert (Raidiam-issued; outbound mTLS to introspection — server TLS is the Let's Encrypt cert per ADR-0004)
+aws ssm put-parameter --name /opda-lr-facade-dev/transport_certificate --value file://keys/server.crt --type String --overwrite --region eu-west-2
 
 # Transport key (encrypted at rest)
-aws ssm put-parameter --name /opda-lr-facade/transport_key --value file://keys/server.key --type SecureString --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/transport_key --value file://keys/server.key --type SecureString --overwrite --region eu-west-2
 
 # CA trusted list (verifies incoming client certs)
-aws ssm put-parameter --name /opda-lr-facade/ca_trusted_list --value file://keys/ca_trusted_list.pem --type String --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/ca_trusted_list --value file://keys/ca_trusted_list.pem --type String --overwrite --region eu-west-2
 
 # Raidiam JWT signing key (private key only). Path uses name_prefix.
 aws ssm put-parameter --name /opda-lr-facade-dev/signing_key --value file://certs/rtssigning.key --type SecureString --overwrite --region eu-west-2
 
 # HMLR credentials (have ignore_changes=[value] in TF — safe to set out-of-band)
-aws ssm put-parameter --name /opda-lr-facade/hmlr/endpoint --value "https://bgtest.landregistry.gov.uk/b2b/BGStubService/OfficialCopyWithSummaryV2_1WebService" --type String --overwrite --region eu-west-2
-aws ssm put-parameter --name /opda-lr-facade/hmlr/username --value "<username>" --type SecureString --overwrite --region eu-west-2
-aws ssm put-parameter --name /opda-lr-facade/hmlr/password --value "<password>" --type SecureString --overwrite --region eu-west-2
-aws ssm put-parameter --name /opda-lr-facade/hmlr/client_certificate --value file://certs/hmlr-client.pem --type SecureString --overwrite --region eu-west-2
-aws ssm put-parameter --name /opda-lr-facade/hmlr/client_key --value file://certs/hmlr-client.key --type SecureString --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/hmlr/endpoint --value "https://bgtest.landregistry.gov.uk/b2b/BGStubService/OfficialCopyWithSummaryV2_1WebService" --type String --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/hmlr/username --value "<username>" --type SecureString --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/hmlr/password --value "<password>" --type SecureString --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/hmlr/client_certificate --value file://certs/hmlr-client.pem --type SecureString --overwrite --region eu-west-2
+aws ssm put-parameter --name /opda-lr-facade-dev/hmlr/client_key --value file://certs/hmlr-client.key --type SecureString --overwrite --region eu-west-2
 
 # OS Places API key (opda-os-api). Path uses name_prefix.
 aws ssm put-parameter --name /opda-os-api-dev/os_api_key --value "<key>" --type SecureString --overwrite --region eu-west-2
@@ -52,13 +52,13 @@ aws ssm put-parameter --name /opda-os-api-dev/os_api_key --value "<key>" --type 
 
 ```bash
 # Read a parameter (no decryption — confirm presence + type)
-aws ssm get-parameter --name /opda-lr-facade/transport_certificate --region eu-west-2
+aws ssm get-parameter --name /opda-lr-facade-dev/transport_certificate --region eu-west-2
 
 # Read a SecureString with decryption (avoid on shared screens)
-aws ssm get-parameter --name /opda-lr-facade/transport_key --with-decryption --region eu-west-2
+aws ssm get-parameter --name /opda-lr-facade-dev/transport_key --with-decryption --region eu-west-2
 
 # List parameters by path prefix (one API)
-aws ssm describe-parameters --parameter-filters "Key=Name,Option=BeginsWith,Values=/opda-lr-facade/" --region eu-west-2
+aws ssm describe-parameters --parameter-filters "Key=Name,Option=BeginsWith,Values=/opda-lr-facade-dev/" --region eu-west-2
 
 # Read shared-VPC outputs
 aws ssm get-parameter --name /opda/shared/vpc_id --region eu-west-2
@@ -72,18 +72,18 @@ aws ssm get-parameter --name /opda/shared/execute_api_vpc_endpoint_id --region e
 
 ```bash
 # NLB DNS name (used as Bruno baseUrl when no custom domain is wired)
-aws elbv2 describe-load-balancers --names opda-lr-facade --query "LoadBalancers[0].DNSName" --output text --region eu-west-2
+aws elbv2 describe-load-balancers --names opda-shared-proxy-dev --query "LoadBalancers[0].DNSName" --output text --region eu-west-2
 ```
 
 ## Lambda — sanity / debug
 
 ```bash
 # Confirm a Lambda is pointing at the expected image SHA
-aws lambda get-function --function-name opda-lr-facade --query "Code.ImageUri" --output text --region eu-west-2
-aws lambda get-function --function-name opda-lr-facade-authorizer --query "Code.ImageUri" --output text --region eu-west-2
+aws lambda get-function --function-name opda-lr-facade-dev --query "Code.ImageUri" --output text --region eu-west-2
+aws lambda get-function --function-name opda-lr-facade-dev-authorizer --query "Code.ImageUri" --output text --region eu-west-2
 
 # Invoke for a quick health check (writes response to /tmp/out.json)
-aws lambda invoke --function-name opda-lr-facade --payload '{"requestContext":{"http":{"method":"GET"}},"rawPath":"/health"}' --cli-binary-format raw-in-base64-out /tmp/out.json --region eu-west-2
+aws lambda invoke --function-name opda-lr-facade-dev --payload '{"requestContext":{"http":{"method":"GET"}},"rawPath":"/health"}' --cli-binary-format raw-in-base64-out /tmp/out.json --region eu-west-2
 ```
 
 ## DynamoDB (opda-mra-api)
@@ -103,12 +103,12 @@ aws dynamodb scan --table-name opda-mra-api-coalfields-dev --select COUNT --regi
 
 ```bash
 # Tail Lambda / ECS logs (requires AWS CLI v2 'logs tail')
-aws logs tail /aws/lambda/opda-lr-facade --follow --region eu-west-2
-aws logs tail /aws/lambda/opda-lr-facade-authorizer --follow --region eu-west-2
-aws logs tail /ecs/opda-lr-facade-mtls --follow --region eu-west-2
+aws logs tail /aws/lambda/opda-lr-facade-dev --follow --region eu-west-2
+aws logs tail /aws/lambda/opda-lr-facade-dev-authorizer --follow --region eu-west-2
+aws logs tail /ecs/opda-shared-proxy-dev --follow --region eu-west-2
 
 # Filter logs for a FAPI interaction id (replace the UUID)
-aws logs filter-log-events --log-group-name /aws/lambda/opda-lr-facade --filter-pattern "11111111-2222-3333-4444-555555555555" --region eu-west-2
+aws logs filter-log-events --log-group-name /aws/lambda/opda-lr-facade-dev --filter-pattern "11111111-2222-3333-4444-555555555555" --region eu-west-2
 ```
 
 ## Teardown follow-ups (manual, only when the destroy script isn't enough)
@@ -125,7 +125,7 @@ aws logs delete-log-group --log-group-name /aws/lambda/opda-os-api-dev --region 
 
 ```bash
 # Sync built static artifact to S3 (after `npm run build` produces dist/)
-aws s3 sync opda-ops/org-browser/dist/ s3://opda-org-browser/ --delete --region eu-west-2
+aws s3 sync opda-ops/org-browser/dist/ s3://opda-org-browser-<AWS_ACCOUNT_ID>/ --delete --region eu-west-2
 
 # Invalidate CloudFront after deploy (replace DIST_ID)
 aws cloudfront create-invalidation --distribution-id DIST_ID --paths "/*"

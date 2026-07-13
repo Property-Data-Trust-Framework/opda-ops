@@ -37,6 +37,13 @@ source (`aws:SourceVpce`) while gateways are Private (Phase 1/2).
   certs exist). It defaults to `false` and must never be enabled in a deployed
   environment — when `true`, the authorizer never runs, so scope-protected endpoints
   401 (no claims). Documented in [[Runbook]] / [[Key-Learnings]].
+
+  > **Update (2026-07):** the authorizer now short-circuits on bypass by returning an
+  > Allow policy that injects `scope=land-registry` (`authorizer/main.go`
+  > `handleRequest`), so bypass **grants access** to `land-registry`-scoped endpoints
+  > rather than 401ing — more dangerous in a deployed environment than the original
+  > note implied. Behaviour depends on the pinned `AUTHORIZER_IMAGE_TAG`; older images
+  > retain the claimless-401 behaviour.
 - The authorizer Lambda permission is currently account+region-scoped to all API
   Gateways (a deliberate circular-dependency workaround). Tightening to the specific
   API Gateway execution ARN is tracked in [[Production-Readiness]].
