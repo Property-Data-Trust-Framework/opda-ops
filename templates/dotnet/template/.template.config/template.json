@@ -1,8 +1,8 @@
 {
   "$schema": "http://json.schemastore.org/template",
-  "author": "Property-Data-Trust-Framework",
+  "author": "OpenPropertyDataAssociation",
   "classifications": ["OPDA", "API", "Lambda", "Web"],
-  "identity": "Property-Data-Trust-Framework.OpdaApi.CSharp",
+  "identity": "OpenPropertyDataAssociation.OpdaApi.CSharp",
   "name": "OPDA API",
   "shortName": "opda-api",
   "sourceName": "MyApi",

@@ -15,7 +15,7 @@ variable "aws_region" {
 
 variable "github_repo" {
   type        = string
-  description = "GitHub repository in owner/repo format (e.g. Property-Data-Trust-Framework/opda-uprn-validator)"
+  description = "GitHub repository in owner/repo format (e.g. OpenPropertyDataAssociation/opda-uprn-validator)"
 
   validation {
     condition     = can(regex("^[^/[:space:]]+/[^/[:space:]]+$", var.github_repo))

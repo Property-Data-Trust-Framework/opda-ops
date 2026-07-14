@@ -21,7 +21,7 @@ GitHub Wiki (opda-ops.wiki.git)        ← source of truth, edited in-browser
 
 - **Living docs** = the wiki (free, GitHub-hosted, in-browser editing).
 - **Generated deliverable** = the onboarding PDF, attached to the `docs` release.
-- **Stable link** (put this anywhere): `https://github.com/Property-Data-Trust-Framework/opda-ops/releases/download/docs/onboarding.pdf`
+- **Stable link** (put this anywhere): `https://github.com/OpenPropertyDataAssociation/opda-ops/releases/download/docs/onboarding.pdf`
 
 ## Files
 
@@ -31,15 +31,14 @@ GitHub Wiki (opda-ops.wiki.git)        ← source of truth, edited in-browser
 | `pdf.css` | OPDA-branded print stylesheet (matches the SPA design system) |
 | `BUILDING.md` | How to render the PDF locally (cross-platform) |
 | `../.github/workflows/onboarding-pdf.yml` | The `gollum` / `workflow_dispatch` pipeline |
-| `../wiki-seed/` | First-draft wiki pages to push into `opda-ops.wiki.git` |
 
-## One-time setup
+## One-time setup (done — recorded for a future rebuild)
 
-1. **Seed the wiki** from `../wiki-seed/` (the wiki is a separate git repo):
+1. **Create the wiki** (Wiki tab → create the first page so `opda-ops.wiki.git` exists),
+   then clone it, add pages, and push. The wiki is a separate git repo — cloning it is
+   also the backup/restore mechanism:
    ```bash
-   gh repo view Property-Data-Trust-Framework/opda-ops --web   # Wiki tab → create the first page so the wiki repo exists
-   git clone https://github.com/Property-Data-Trust-Framework/opda-ops.wiki.git
-   cp wiki-seed/*.md opda-ops.wiki/ && cd opda-ops.wiki && git add . && git commit -m "Seed wiki" && git push
+   git clone https://github.com/OpenPropertyDataAssociation/opda-ops.wiki.git
    ```
 2. **Merge this scaffold to `main`** — the `gollum` trigger only works when the workflow is on
    the default branch.

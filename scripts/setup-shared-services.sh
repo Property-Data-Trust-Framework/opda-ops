@@ -17,11 +17,11 @@
 #   - gh CLI installed and authenticated (gh auth login)
 #   - AWS IAM role for opda-shared-services GitHub Actions already created
 #     (see opda-ops Terraform outputs or create manually with the OIDC trust
-#     policy scoped to Property-Data-Trust-Framework/opda-shared-services)
+#     policy scoped to OpenPropertyDataAssociation/opda-shared-services)
 #
 set -euo pipefail
 
-REPO="Property-Data-Trust-Framework/opda-shared-services"
+REPO="OpenPropertyDataAssociation/opda-shared-services"
 ENV_NAME="dev"
 DRY_RUN=false
 
@@ -79,4 +79,4 @@ echo "    Environment: https://github.com/$REPO/settings/environments"
 echo ""
 echo "NOTE: After the first publish run, copy the ECR URL from the workflow"
 echo "summary and set it as SHARED_SERVICES_ECR_BASE in each consumer repo:"
-echo "  GH_VAR_SHARED_SERVICES_ECR_BASE=<url> ./scripts/setup-github-env.sh --repo Property-Data-Trust-Framework/<api-repo> --env dev"
+echo "  GH_VAR_SHARED_SERVICES_ECR_BASE=<url> ./scripts/setup-github-env.sh --repo OpenPropertyDataAssociation/<api-repo> --env dev"

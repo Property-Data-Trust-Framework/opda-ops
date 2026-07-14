@@ -1,12 +1,13 @@
 # Building the onboarding PDF locally
 
 How to render the onboarding PDF on your own machine — the same output as the
-`onboarding-pdf.yml` workflow, but built from `../wiki-seed/` (so no wiki/git needed).
-For *what* the pipeline is and how it publishes, see [README.md](README.md).
+`onboarding-pdf.yml` workflow, built from a local clone of the wiki (the source of
+truth). For *what* the pipeline is and how it publishes, see [README.md](README.md).
 
-Set two anchors first, then run **Setup** once and **Build** whenever you edit:
+Set three anchors first, then run **Setup** once and **Build** whenever you edit:
 
 - `S` = path to the `opda-ops` repo
+- `W` = path to a clone of the wiki: `git clone https://github.com/OpenPropertyDataAssociation/opda-ops.wiki.git`
 - `B` = scratch build dir
 
 Output (all platforms): `<B>/build/site/pdf/onboarding.pdf`
@@ -54,14 +55,14 @@ $B="$env:TEMP\opda-pdf-build"; uv venv "$B\.venv"; uv pip install --python "$B\.
 
 ## 3. Build (re-run after editing Onboarding.md / mkdocs.yml / pdf.css)
 
-**macOS / Linux (bash)** — set `S` to your `opda-ops` checkout
+**macOS / Linux (bash)** — set `S` to your `opda-ops` checkout, `W` to your wiki clone
 ```bash
-S=/path/to/opda-ops; B=/tmp/opda-pdf-build; rm -rf "$B/build" && mkdir -p "$B/build/docs" && cp "$S/docs-pdf/mkdocs.yml" "$B/build/mkdocs.yml" && cp "$S/docs-pdf/pdf.css" "$B/build/docs/pdf.css" && sed -E 's#\[\[([A-Za-z-]+)\]\]#[\1](https://github.com/Property-Data-Trust-Framework/opda-ops/wiki/\1)#g' "$S/wiki-seed/Onboarding.md" > "$B/build/docs/index.md" && (cd "$B/build" && ENABLE_PDF_EXPORT=1 "$B/.venv/bin/mkdocs" build)
+S=/path/to/opda-ops; W=/path/to/opda-ops.wiki; B=/tmp/opda-pdf-build; rm -rf "$B/build" && mkdir -p "$B/build/docs" && cp "$S/docs-pdf/mkdocs.yml" "$B/build/mkdocs.yml" && cp "$S/docs-pdf/pdf.css" "$B/build/docs/pdf.css" && sed -E 's#\[\[([A-Za-z-]+)\]\]#[\1](https://github.com/OpenPropertyDataAssociation/opda-ops/wiki/\1)#g' "$W/Onboarding.md" > "$B/build/docs/index.md" && (cd "$B/build" && ENABLE_PDF_EXPORT=1 "$B/.venv/bin/mkdocs" build)
 ```
 
-**Windows (PowerShell)** — set `$S` to your `opda-ops` checkout
+**Windows (PowerShell)** — set `$S` to your `opda-ops` checkout, `$W` to your wiki clone
 ```powershell
-$S="C:\path\to\opda-ops"; $B="$env:TEMP\opda-pdf-build"; Remove-Item -Recurse -Force "$B\build" -ErrorAction Ignore; New-Item -ItemType Directory -Force "$B\build\docs" | Out-Null; Copy-Item "$S\docs-pdf\mkdocs.yml" "$B\build\mkdocs.yml"; Copy-Item "$S\docs-pdf\pdf.css" "$B\build\docs\pdf.css"; ((Get-Content "$S\wiki-seed\Onboarding.md" -Raw) -replace '\[\[([A-Za-z-]+)\]\]','[$1](https://github.com/Property-Data-Trust-Framework/opda-ops/wiki/$1)') | Set-Content "$B\build\docs\index.md"; Push-Location "$B\build"; $env:ENABLE_PDF_EXPORT="1"; & "$B\.venv\Scripts\mkdocs.exe" build; Pop-Location
+$S="C:\path\to\opda-ops"; $W="C:\path\to\opda-ops.wiki"; $B="$env:TEMP\opda-pdf-build"; Remove-Item -Recurse -Force "$B\build" -ErrorAction Ignore; New-Item -ItemType Directory -Force "$B\build\docs" | Out-Null; Copy-Item "$S\docs-pdf\mkdocs.yml" "$B\build\mkdocs.yml"; Copy-Item "$S\docs-pdf\pdf.css" "$B\build\docs\pdf.css"; ((Get-Content "$W\Onboarding.md" -Raw) -replace '\[\[([A-Za-z-]+)\]\]','[$1](https://github.com/OpenPropertyDataAssociation/opda-ops/wiki/$1)') | Set-Content "$B\build\docs\index.md"; Push-Location "$B\build"; $env:ENABLE_PDF_EXPORT="1"; & "$B\.venv\Scripts\mkdocs.exe" build; Pop-Location
 ```
 
 The `sed` / `-replace` step is the PDF-only wikilink rewrite — MkDocs doesn't grok
@@ -78,8 +79,8 @@ pdftoppm -png -r 110 /tmp/opda-pdf-build/build/site/pdf/onboarding.pdf /tmp/opda
 
 ## 5. Or just run the real pipeline
 
-Builds from the **wiki** (needs it seeded) and publishes the `docs` release asset:
+Builds from the **live wiki** and publishes the `docs` release asset:
 
 ```bash
-gh workflow run "Onboarding PDF" --repo Property-Data-Trust-Framework/opda-ops
+gh workflow run "Onboarding PDF" --repo OpenPropertyDataAssociation/opda-ops
 ```

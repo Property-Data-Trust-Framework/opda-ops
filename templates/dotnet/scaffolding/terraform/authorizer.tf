@@ -1,5 +1,5 @@
 module "authorizer" {
-  source = "git::https://github.com/Property-Data-Trust-Framework/opda-shared-infra.git//modules/authorizer?ref=main"
+  source = "git::https://github.com/OpenPropertyDataAssociation/opda-shared-infra.git//modules/authorizer?ref=main"
 
   name                            = local.name_prefix
   vpc_id                          = local.vpc_id
