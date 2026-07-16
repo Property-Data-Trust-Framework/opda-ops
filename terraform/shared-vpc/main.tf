@@ -6,7 +6,7 @@ locals {
 }
 
 module "vpc" {
-  source = "git::https://github.com/OpenPropertyDataAssociation/opda-shared-infra.git//modules/vpc?ref=main"
+  source = "git::https://github.com/Property-Data-Trust-Framework/opda-shared-infra.git//modules/vpc?ref=main"
 
   name                 = "opda-shared"
   availability_zones   = var.availability_zones

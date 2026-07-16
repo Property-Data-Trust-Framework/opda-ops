@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_NAME="$(basename "$REPO_ROOT")"
 ENVIRONMENT="${1:-dev}"
-GITHUB_ORG="OpenPropertyDataAssociation"
+GITHUB_ORG="Property-Data-Trust-Framework"
 
 echo ""
 echo "!!! WARNING !!!"

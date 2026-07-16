@@ -51,8 +51,9 @@ In rough priority order:
 
 | Item | Fix |
 |---|---|
-| Compiled `opda-lr-facade` binary in repo root | 11MB binary committed at `opda-lr-facade/opda-lr-facade` (last seen 2026-04-29). `.gitignore` + remove from history. |
 | DevSecOps hygiene (none configured) | Dependabot, golangci-lint CI, Trivy image scanning, tflint. |
+
+Closed since first drafted: the compiled `opda-lr-facade` binary previously committed at the repo root is gone — untracked, gitignored (`opda-lr-facade/.gitignore`), and absent from the (squashed) history.
 
 ## Pre-conditions for ephemeral environments (deferred)
 

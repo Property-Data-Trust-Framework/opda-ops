@@ -3,11 +3,6 @@ output "state_bucket_name" {
   value       = aws_s3_bucket.terraform_state.bucket
 }
 
-output "lock_table_name" {
-  description = "Name of the DynamoDB table for Terraform state locking."
-  value       = aws_dynamodb_table.terraform_state_lock.name
-}
-
 output "github_oidc_provider_arn" {
   description = "ARN of the shared GitHub Actions OIDC provider. Reference this in per-API IAM role trust policies via a data lookup."
   value       = aws_iam_openid_connect_provider.github.arn

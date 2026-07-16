@@ -9,7 +9,7 @@ durability is the whole point, so the bar for "no secrets, no surprises" is high
 Full scan across all 18 repos + the wiki (6 review agents + deterministic grep). **No
 AWS access keys, no committed private keys/certs, and no account-ID leaks in any
 *tracked* file — except the one noted below.** Decisions taken: canonical GitHub org is
-**`OpenPropertyDataAssociation`** (moved 2026-07-13; the 2026-06-25 scan was done under
+**`Property-Data-Trust-Framework`** (moved 2026-07-13; the 2026-06-25 scan was done under
 `Property-Data-Trust-Framework`); the real sandbox Raidiam
 client_id `70e31a1a-…` is a **public OAuth identifier and is kept as-is** by decision;
 Survey Shack sample PDFs **replaced with synthetic** reports.

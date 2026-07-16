@@ -14,7 +14,7 @@ Shared operations repo for the OPDA platform. Contains:
 The living documentation is the **GitHub wiki** (Runbook, Key-Learnings, ADRs,
 Production-Readiness, cheatsheets) — it's the source of truth and survives the AWS
 account being torn down. The wiki is itself a git repo: `git clone
-https://github.com/OpenPropertyDataAssociation/opda-ops.wiki.git` is a full backup.
+https://github.com/Property-Data-Trust-Framework/opda-ops.wiki.git` is a full backup.
 
 - **PDF pipeline** (how the onboarding PDF is built + published): [`docs-pdf/README.md`](docs-pdf/README.md)
 - **Build the PDF locally** (cross-platform): [`docs-pdf/BUILDING.md`](docs-pdf/BUILDING.md)
@@ -29,17 +29,16 @@ Creates the shared infrastructure that all other repos depend on before they can
 | Resource | Name |
 |---|---|
 | S3 state bucket | `ops-terraform-state-<account-id>` |
-| DynamoDB lock table | `ops-terraform-state-lock` |
 | GitHub Actions OIDC provider | `https://token.actions.githubusercontent.com` |
 
-Both the bucket and lock table have `prevent_destroy = true`. Deleting them would orphan state files for every repo — don't.
+The bucket has `prevent_destroy = true`. Deleting it would orphan state files for every repo — don't. State locking uses S3 native lockfiles (`use_lockfile = true`, Terraform ≥ 1.10); the old `ops-terraform-state-lock` DynamoDB table has been removed.
 
 ### Usage
 
 ```bash
 aws configure  # or export AWS_* env vars
 terraform init
-terraform apply -var="github_org=OpenPropertyDataAssociation"
+terraform apply -var="github_org=Property-Data-Trust-Framework"
 ```
 
 ### Variables / Outputs
@@ -74,7 +73,7 @@ Prompts for repo name and base namespace if not supplied. Namespace defaults to 
 **Prerequisites:** `gh`, `aws`, `dotnet 9`, `git`, `terraform` (optional — IAM step skipped if absent or `--skip-iam-bootstrap` passed)
 
 **What it does:**
-1. Creates `OpenPropertyDataAssociation/<repo-name>` on GitHub (private)
+1. Creates `Property-Data-Trust-Framework/<repo-name>` on GitHub (private)
 2. Clones locally into `<repo-name>/`
 3. Adds `opda-shared-services` as a git submodule
 4. Copies scaffolding (workflows, terraform, openapi, bruno, keys skeleton)
@@ -267,7 +266,7 @@ cd <repo-name>/terraform
 terraform init -backend-config="key=<repo-name>/dev/terraform.tfstate"
 TF_VAR_name="<repo-name>" \
 TF_VAR_environment="dev" \
-TF_VAR_github_repo="OpenPropertyDataAssociation/<repo-name>" \
+TF_VAR_github_repo="Property-Data-Trust-Framework/<repo-name>" \
 terraform destroy
 ```
 
@@ -276,7 +275,7 @@ Then clean up the orphaned state file and delete the GitHub repo:
 ```bash
 BUCKET="ops-terraform-state-$(aws sts get-caller-identity --query Account --output text)"
 aws s3 rm "s3://${BUCKET}/<repo-name>/dev/terraform.tfstate"
-gh repo delete OpenPropertyDataAssociation/<repo-name> --yes
+gh repo delete Property-Data-Trust-Framework/<repo-name> --yes
 ```
 
 **Known gotchas:**

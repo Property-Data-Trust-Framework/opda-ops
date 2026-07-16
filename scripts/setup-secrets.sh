@@ -26,7 +26,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ORG="OpenPropertyDataAssociation"
+ORG="Property-Data-Trust-Framework"
 ENV_NAME="dev"
 
 # ── Args ──────────────────────────────────────────────────────────────────────

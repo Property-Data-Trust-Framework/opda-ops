@@ -29,7 +29,7 @@ data "aws_ssm_parameter" "vpc_endpoints_security_group_id" {
 # ─── Shared proxy ─────────────────────────────────────────────────────────────
 
 module "shared_proxy" {
-  source = "git::https://github.com/OpenPropertyDataAssociation/opda-shared-infra.git//modules/shared-proxy?ref=main"
+  source = "git::https://github.com/Property-Data-Trust-Framework/opda-shared-infra.git//modules/shared-proxy?ref=main"
 
   name                            = local.name
   vpc_id                          = data.aws_ssm_parameter.vpc_id.value

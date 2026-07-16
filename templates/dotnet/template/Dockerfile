@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/MyApi/MyApi.csproj src/MyApi/
 RUN dotnet restore src/MyApi/MyApi.csproj -r linux-x64

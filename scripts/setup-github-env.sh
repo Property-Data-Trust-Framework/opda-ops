@@ -7,7 +7,7 @@
 #
 # USAGE
 #   # Configure an existing repo:
-#   ./scripts/setup-github-env.sh --repo OpenPropertyDataAssociation/opda-lr-facade --env dev
+#   ./scripts/setup-github-env.sh --repo Property-Data-Trust-Framework/opda-lr-facade --env dev
 #
 #   # Create a new repo then configure it:
 #   ./scripts/setup-github-env.sh --new-repo-name opda-companies-house --env dev
@@ -40,7 +40,7 @@ set -euo pipefail
 
 REPO=""
 NEW_REPO_NAME=""
-ORG="OpenPropertyDataAssociation"
+ORG="Property-Data-Trust-Framework"
 ENV_NAME="dev"
 DESCRIPTION=""
 VISIBILITY="private"
@@ -83,7 +83,7 @@ if [[ -n "$NEW_REPO_NAME" ]]; then
   REPO="${ORG}/${NEW_REPO_NAME}"
 fi
 
-REPO_NAME="${REPO##*/}"   # e.g. "opda-lr-facade" from "OpenPropertyDataAssociation/opda-lr-facade"
+REPO_NAME="${REPO##*/}"   # e.g. "opda-lr-facade" from "Property-Data-Trust-Framework/opda-lr-facade"
 
 # ── Schema — define what every OPDA API repo environment needs ────────────────
 #
@@ -126,7 +126,7 @@ AUTO_VARS=(
 # Submodules — "name|url" pairs added to each OPDA API repo.
 # Add entries here when a new shared service needs to be vendored in.
 SUBMODULES=(
-  "opda-shared-services|https://github.com/OpenPropertyDataAssociation/opda-shared-services.git"
+  "opda-shared-services|https://github.com/Property-Data-Trust-Framework/opda-shared-services.git"
 )
 
 # ── Pre-flight checks ─────────────────────────────────────────────────────────

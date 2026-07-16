@@ -40,6 +40,14 @@ Lambdas are left untouched.
   sharing a live prefix silently hits the wrong backend — see the "Shared proxy —
   Bruno collection hygiene" gotcha in [[Key-Learnings]].
 
+> **Update (2026-07):** two notes on the implemented state. (1) Route prefixes are
+> now versioned two-segment paths (`/v1/uprn`, `/v1/documents`, … — see
+> [[ADR-0008-api-versioning|ADR-0008]]), each stored as a discrete SSM param under
+> `/opda/proxy/routes/*` carrying `{prefix, target}` JSON, rather than the single
+> illustrative table shown above. (2) **`opda-competition-api` is an exception**: it
+> retains its own dedicated mtls-proxy stack (`terraform/mtls_proxy.tf`) rather than
+> registering into the shared proxy.
+
 ## Alternatives considered
 
 - **Stay on per-API stacks** — rejected: cannot carry one custom domain / one cert,

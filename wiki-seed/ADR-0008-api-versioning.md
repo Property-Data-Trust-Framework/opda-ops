@@ -21,6 +21,15 @@ across APIs.
   unambiguous.
 - **`/health` endpoints stay unversioned.**
 
+> **Update (2026-07):** in the implemented proxy, routing is by **longest-matching
+> path prefix** (`cmd/mtls/main.go` sorts routes longest-first and matches with
+> `strings.HasPrefix`), not strictly by first segment. The .NET APIs all share `/v1`
+> as their first segment and are disambiguated by the second (`/v1/epc`,
+> `/v1/coalfield`, `/v1/council-tax`, `/v1/places`, `/v1/documents`, `/v1/uprn`,
+> `/v1/source-of-funds`, `/v1/conveyancing-events`); the facade's family prefix is
+> `/opda`. Health endpoints are versioned per-family in practice (e.g.
+> `/v1/epc/health`) so they route through the same prefixes.
+
 ## Consequences
 
 - Applying versioning to an API touches: the `Program.cs` endpoint path, the

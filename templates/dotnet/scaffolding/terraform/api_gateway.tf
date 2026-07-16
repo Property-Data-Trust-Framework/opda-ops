@@ -1,5 +1,5 @@
 module "api_gateway" {
-  source = "git::https://github.com/OpenPropertyDataAssociation/opda-shared-infra.git//modules/api-gateway?ref=main"
+  source = "git::https://github.com/Property-Data-Trust-Framework/opda-shared-infra.git//modules/api-gateway?ref=main"
 
   name = local.name_prefix
 

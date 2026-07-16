@@ -112,7 +112,7 @@ Then populate `.env.dev` from the example file. **Auto-resolved from AWS** by `s
 | `GH_SECRET_HMLR_USERNAME` / `GH_SECRET_HMLR_PASSWORD` | HMLR Business Gateway creds (facade only) |
 | `GH_VAR_HMLR_ENDPOINT` | HMLR Business Gateway SOAP endpoint |
 | `GH_SECRET_HMLR_CLIENT_CERT` / `GH_SECRET_HMLR_CLIENT_KEY` | PEM — mTLS client cert/key for HMLR (facade only) |
-| `GH_VAR_PROVENANCE_SIGNING_KID` | Raidiam-issued KID for the provenance signing cert (separate cert from the rtssigning cert used for `private_key_jwt` AuthN). Public — variable, not secret. Empty disables signing — responses revert to the unsigned `TitleDeed` shape. |
+| `GH_VAR_PROVENANCE_SIGNING_KID` | Raidiam-issued KID for the provenance signing cert (separate cert from the rtssigning cert used for `private_key_jwt` AuthN). Public — variable, not secret. Empty disables signing — responses are returned as the unsigned PDTF v3.5 propertyPack (same body, minus the `{data, provenance}` envelope). |
 | `GH_SECRET_DATAPROV_KEY` | PEM — RSA private key paired with the KID above. Maps to `TF_VAR_dataprov_key` in `deploy.yml`. Public half is auto-published in our org's hosted JWKS at `keystore.directory.pdtf.raidiam.io/{org-id}/application.jwks` — no separate JWKS endpoint to stand up. |
 
 Then run:
@@ -366,37 +366,27 @@ Useful only during initial bootstrap, before Raidiam certs are wired. **Default 
 - Bruno `bearerToken` can be any non-empty string (API GW still requires the header to be present)
 - Module default in `opda-shared-infra/modules/authorizer` is `false`, so this can never accidentally land in prod
 
-Important caveat: with bypass on, the authorizer never runs, so for .NET APIs `HttpContext.User` has no claims and the scope filter rejects everything with 401. Bypass is genuinely usable only for endpoints that don't gate on scope. See [[Key-Learnings]] ".NET Lambda packaging".
+Important caveat: with bypass on, the authorizer still runs — it skips introspection and cert-binding and injects a hard-coded `land-registry` scope into the authorizer context (`authorizer/main.go` `handleRequest`), so endpoints gating on `land-registry` (all current data APIs) work normally under bypass. Endpoints requiring a *different* scope still fail (only `land-registry` is present). Note the deployed authorizer is image-pinned (`AUTHORIZER_IMAGE_TAG`): an image predating the scope injection instead leaves `HttpContext.User` claimless, 401ing every scope-gated route. See [[Key-Learnings]] ".NET Lambda packaging".
 
 ---
 
 ## Local development
 
-### Go facade (`opda-lr-facade`) — full local stack
+### Go facade (`opda-lr-facade`) — local development
 
-Prerequisites (one-time): Docker Desktop, Go 1.22+, OpenSSL (preinstalled on macOS), Bruno desktop app.
+The earlier LocalStack/docker-compose local stack no longer exists (no `docker-compose.yml`, `generate-dev-certs.sh`, `build-local.sh`, or Bruno `local` environment in the repo). Facade local dev is now:
 
 1. Initialise the submodule:
    ```
    git submodule update --init --recursive
    ```
-2. Generate dev certs — produces `keys/` (gitignored) with CA, server cert/key, and Bruno client cert/key:
+2. Build + test directly:
    ```
-   ./scripts/generate-dev-certs.sh
+   go build . && go vet ./... && go test ./...
    ```
-3. Build the Lambda zip — produces `handler.zip` in repo root, mounted into LocalStack:
-   ```
-   ./scripts/build-local.sh
-   ```
-4. Start the local stack and wait ~30s for healthcheck:
-   ```
-   docker-compose up
-   ```
-   The startup banner prints an `apiId` and base URL `http://localhost:4566/_aws/execute-api/<id>/v1` — note the `apiId`.
-5. In Bruno, open the `bruno/` collection, switch to the **local** environment, set `apiId` to the value from the banner and `bearerToken` to any non-empty string (auth is bypassed locally).
-6. Send `register-extract / Request Register Extract` — expect 200 with mock `OCSummaryData` + `OCRegisterData`. Mock data only — no real HMLR call is made in local mode.
+3. Mock mode: the deployed sandbox (and any local run) uses the `LOCAL_MOCK=true` env var (`internal/api/api.go`) to return a canned register extract instead of calling HMLR. The mock response is the PDTF v3.5 propertyPack — `data.propertyPack.titlesToBeSold[0].registerExtract.{ocSummaryData, ocRegisterData}` (camelCase); the old flat top-level `OCSummaryData`/`OCRegisterData` shape is gone.
 
-The same Bruno collection's `aws` environment targets the live mTLS endpoint and requires real Raidiam-issued certs + a fresh bearer token — see "Token + Bruno verify" instead.
+End-to-end verification uses the Bruno collection's `aws` environment against the live mTLS endpoint (real Raidiam-issued certs + a fresh bearer token) — see "Token + Bruno verify". `bruno/register-extract/post-register-extract.bru` asserts the propertyPack shape.
 
 ### .NET APIs — gap
 
@@ -417,7 +407,7 @@ When a deploy completes but Bruno calls fail, work through these in order before
 7. **ECS task running with latest certs?** If you updated SSM, did you `--force-new-deployment`?
 8. **Authorizer image SHA matches?** GitHub var `AUTHORIZER_IMAGE_TAG` must point at a published image in ECR. (`MTLS_PROXY_IMAGE_TAG` was removed from per-API repos post-shared-proxy migration — the shared proxy image tag is managed by `deploy-shared-proxy.sh` only.)
 9. **CA trust list current?** If introspection is failing with `x509: signed by unknown authority`, the `CA_TRUSTED_LIST` secret may still be the dev CA. Replace with the OPDA CA from the Raidiam reference repo.
-10. **Scope claim shape?** For .NET APIs, the scope filter reads `http.User.FindFirst("scope")` — not `HttpContext.Items`. With `BYPASS_AUTH=true` the user has no claims and scope-protected endpoints will 401 — that's expected.
+10. **Scope claim shape?** For .NET APIs, the scope filter reads `http.User.FindFirst("scope")` — not `HttpContext.Items`. With `BYPASS_AUTH=true` the (current) authorizer injects the `land-registry` scope, so endpoints gating on that scope pass; a 401 under bypass means the deployed authorizer image predates the scope injection (see "BYPASS_AUTH escape hatch").
 11. **HMLR `messageId` numeric?** In the test environment, alphanumeric is silently rejected.
 12. **Log groups** — `/aws/lambda/<name>`, `/aws/lambda/<name>-authorizer`, `/ecs/<name>-mtls`. Authorizer logs include masked claims; SOAP errors land in the facade Lambda log.
 

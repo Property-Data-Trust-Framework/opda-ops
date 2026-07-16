@@ -9,7 +9,7 @@
 #   ./opda-ops/scripts/bootstrap-api.sh [<repo-name>] [--skip-iam-bootstrap]
 #
 # If <repo-name> is omitted you will be prompted.
-# The repo is created under the OpenPropertyDataAssociation GitHub org and fails fast if it exists.
+# The repo is created under the Property-Data-Trust-Framework GitHub org and fails fast if it exists.
 # Use --skip-iam-bootstrap if you don't have local AWS credentials at bootstrap time.
 #
 # PREREQUISITES
@@ -24,7 +24,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEMPLATES_DIR="$REPO_ROOT/templates/dotnet"
-ORG="OpenPropertyDataAssociation"
+ORG="Property-Data-Trust-Framework"
 ENV_NAME="dev"
 SKIP_IAM_BOOTSTRAP=false
 REPO_NAME=""
@@ -95,7 +95,7 @@ echo ""
 # ── 3. Add shared submodule ───────────────────────────────────────────────────
 
 echo ">>> [3/7] Adding opda-shared-services submodule..."
-git submodule add "https://github.com/OpenPropertyDataAssociation/opda-shared-services.git" opda-shared-services
+git submodule add "https://github.com/Property-Data-Trust-Framework/opda-shared-services.git" opda-shared-services
 echo ""
 
 # ── 4. Copy scaffolding ───────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ if [[ "$IAM_BOOTSTRAP_DONE" == false ]]; then
   echo "       cd $TARGET_DIR/terraform/iam"
   echo "       BUCKET=\"ops-terraform-state-\$(aws sts get-caller-identity --query Account --output text)\""
   echo "       terraform init -reconfigure -backend-config=\"bucket=\$BUCKET\" -backend-config=\"region=eu-west-2\" -backend-config=\"key=$REPO_NAME/iam/terraform.tfstate\""
-  echo "       TF_VAR_name=$REPO_NAME TF_VAR_github_repo=OpenPropertyDataAssociation/$REPO_NAME terraform apply"
+  echo "       TF_VAR_name=$REPO_NAME TF_VAR_github_repo=Property-Data-Trust-Framework/$REPO_NAME terraform apply"
   echo "       # Copy the output github_actions_role_arn and set it as AWS_ROLE_ARN in GitHub secrets."
   echo ""
   echo "  5. Push to main — the pipeline will deploy the infrastructure."

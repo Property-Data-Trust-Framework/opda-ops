@@ -6,9 +6,12 @@
 ## Context
 
 API responses need verifiable **data provenance** so a consumer can confirm the
-payload came from us and was not altered in transit. Provenance signing is
-centralised in shared services — APIs do not hand-roll their own JWS
-(see the Raidiam comparison in [[Key-Learnings]]).
+payload came from us and was not altered in transit. Provenance signing follows a
+single canonical implementation — APIs do not hand-roll their own JWS
+(see the Raidiam comparison in [[Key-Learnings]]). In practice the canonical
+`ProvenanceSigner` lives in the `opda-ops` dotnet template and is copied per-repo
+(there is no shared library); the Go facade has its own equivalent in
+`internal/provenance/`.
 
 ## Decision
 

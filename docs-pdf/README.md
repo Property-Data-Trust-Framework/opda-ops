@@ -21,7 +21,7 @@ GitHub Wiki (opda-ops.wiki.git)        ← source of truth, edited in-browser
 
 - **Living docs** = the wiki (free, GitHub-hosted, in-browser editing).
 - **Generated deliverable** = the onboarding PDF, attached to the `docs` release.
-- **Stable link** (put this anywhere): `https://github.com/OpenPropertyDataAssociation/opda-ops/releases/download/docs/onboarding.pdf`
+- **Stable link** (put this anywhere): `https://github.com/Property-Data-Trust-Framework/opda-ops/releases/download/docs/onboarding.pdf`
 
 ## Files
 
@@ -38,7 +38,7 @@ GitHub Wiki (opda-ops.wiki.git)        ← source of truth, edited in-browser
    then clone it, add pages, and push. The wiki is a separate git repo — cloning it is
    also the backup/restore mechanism:
    ```bash
-   git clone https://github.com/OpenPropertyDataAssociation/opda-ops.wiki.git
+   git clone https://github.com/Property-Data-Trust-Framework/opda-ops.wiki.git
    ```
 2. **Merge this scaffold to `main`** — the `gollum` trigger only works when the workflow is on
    the default branch.
