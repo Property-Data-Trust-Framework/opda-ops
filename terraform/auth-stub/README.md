@@ -7,36 +7,42 @@ built by publish.yml).
 
 ## Design in one paragraph
 
-One Lambda behind a public **Function URL** — the URL is the issuer. Tokens are
-stateless HMAC blobs (`base64url(client_id|scope|exp).base64url(mac)`), so there is
-no token store. Introspection recomputes the MAC and **never returns `cnf`**, which
-makes the per-API authorizer's RFC 8705 certificate binding self-disable — zero
-authorizer code changes; each API repo just points `OAUTH_ISSUER` here. Client
-assertion signatures are deliberately NOT validated (sandbox-grade): registration in
-the SSM client registry constrains `client_id` and scopes only. Hardening options if
-this ever outlives the sandbox: validate `private_key_jwt` against registered JWKS,
-add `cnf` + mTLS, per-client TTLs.
+One Lambda behind a **private API Gateway, routed through the shared mTLS proxy**
+under the `/auth` prefix — so the issuer is
+`https://dev.api.smartpropdata.org.uk/auth` for every consumer (Bruno, the BFF, and
+the per-API authorizers, which reach it via NAT exactly as they reached Raidiam).
+Public Lambda Function URLs on this account need an extra `lambda:InvokeFunction`
+grant that Terraform cannot express (console-only, lost on recreate — see
+Key-Learnings), hence the estate-standard exposure pattern instead.
+The proxy **exempts `/auth/` from its bearer-presence check** (these endpoints are
+where tokens come from; `TOKENLESS_PATH_PREFIXES` in `cmd/mtls`, default `/auth/`).
+Tokens are stateless HMAC blobs, introspection **never returns `cnf`** (authorizer
+cert-binding self-disables), and client-assertion signatures are deliberately NOT
+validated (sandbox-grade; hardening options: validate `private_key_jwt` against
+registered JWKS, add `cnf` + mTLS, per-client TTLs).
 
-## Apply (local, like shared-vpc)
+## Deploy order (matters!)
 
-```bash
-BUCKET="ops-terraform-state-$(aws sts get-caller-identity --query Account --output text)"
-terraform init -backend-config="bucket=$BUCKET" -backend-config="region=eu-west-2"
-TF_VAR_hmac_key="$(openssl rand -base64 48)" \
-TF_VAR_clients_json='{"demo-bff":{"scopes":["land-registry","transaction-status","property-data","material-info"]},"bruno":{"scopes":["land-registry"]}}' \
-TF_VAR_authstub_image_tag="authstub-<sha from publish.yml summary>" \
-  terraform apply
-```
-
-Outputs: `issuer_url` (→ every repo's `OAUTH_ISSUER` GitHub variable) and
-`token_endpoint` (→ BFF `OPDA_TOKEN_ENDPOINT` variable + Bruno `stub-auth` envs).
+1. Push `opda-shared-services` — publish.yml builds `authstub-<sha>` AND a fresh
+   `mtls-<sha>` (the proxy gained the /auth exemption). Note both tags.
+2. Apply this root:
+   ```bash
+   BUCKET="ops-terraform-state-$(aws sts get-caller-identity --query Account --output text)"
+   terraform init -backend-config="bucket=$BUCKET" -backend-config="region=eu-west-2"
+   TF_VAR_hmac_key="$(openssl rand -base64 48)" \
+   TF_VAR_clients_json='{"demo-bff":{"scopes":["land-registry","transaction-status","property-pack","material-info"]},"bruno":{"scopes":["land-registry"]}}' \
+   TF_VAR_authstub_image_tag="authstub-<sha>" \
+     terraform apply
+   ```
+3. Re-apply `opda-ops/terraform/shared-proxy` with the new `mtls-<sha>` tag (picks up
+   the /auth exemption) — this also force-cycles the ECS tasks, which reloads the
+   routing table and picks up the new `/auth` route registered by step 2.
 
 ## Smoke test
 
 ```bash
-ISSUER=$(terraform output -raw issuer_url)
-TOKEN=$(curl -s -X POST "$ISSUER/token" -d "grant_type=client_credentials&client_id=bruno&scope=land-registry" | jq -r .access_token)
-curl -s -X POST "$ISSUER/token/introspection" -d "token=$TOKEN" | jq .
+TOKEN=$(curl -s -X POST "https://dev.api.smartpropdata.org.uk/auth/token" -d "grant_type=client_credentials&client_id=bruno&scope=land-registry" | jq -r .access_token)
+curl -s -X POST "https://dev.api.smartpropdata.org.uk/auth/token/introspection" -d "token=$TOKEN" | jq .
 # expect: {"active": true, "client_id": "bruno", "scope": "land-registry", ...} and NO cnf field
 ```
 

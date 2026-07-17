@@ -28,3 +28,9 @@ variable "clients_json" {
     constrains client_id + scopes only.
   EOT
 }
+
+variable "public_domain" {
+  type        = string
+  description = "Public hostname of the shared mTLS proxy the /auth route hangs off."
+  default     = "dev.api.smartpropdata.org.uk"
+}

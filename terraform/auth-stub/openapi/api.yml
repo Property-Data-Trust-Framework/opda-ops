@@ -1,0 +1,35 @@
+openapi: 3.0.3
+info:
+  title: OPDA Auth Stub
+  description: >
+    Sandbox OAuth issuer (ADR-0012). Token mint + RFC 7662 introspection.
+    No authorizer on these routes by design — they are where tokens come from;
+    the shared proxy exempts /auth/ from its bearer-presence check.
+  version: 1.0.0
+
+paths:
+  /auth/token:
+    post:
+      operationId: mintToken
+      responses:
+        "200":
+          description: Token response
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${service_invoke_arn}
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000
+
+  /auth/token/introspection:
+    post:
+      operationId: introspectToken
+      responses:
+        "200":
+          description: RFC 7662 introspection response
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${service_invoke_arn}
+        passthroughBehavior: when_no_match
+        timeoutInMillis: 29000

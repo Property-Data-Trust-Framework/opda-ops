@@ -1,9 +1,13 @@
 # Sandbox auth stub (ADR-0012) — replaces the Raidiam directory for token mint +
-# RFC 7662 introspection. One Lambda behind a public Function URL; the URL is the
-# OAuth issuer every API repo's OAUTH_ISSUER GitHub variable points at.
-# No VPC: authorizer Lambdas egress via NAT and reach it over public HTTPS.
-# A Function URL never requests client certificates, so the per-API authorizer's
-# mTLS introspection client works unchanged (it only presents a cert when asked).
+# RFC 7662 introspection. Exposed as a PRIVATE API Gateway routed through the
+# shared mTLS proxy under the /auth prefix (public Lambda Function URLs on this
+# account need an extra lambda:InvokeFunction grant that aws_lambda_permission
+# cannot express — console-only, lost on recreate; see Key-Learnings). The issuer is
+# therefore https://<public domain>/auth for every consumer: Bruno, the BFF, and
+# the per-API authorizers (which reach it via NAT exactly like they reached
+# Raidiam). The proxy exempts /auth/ from its bearer-presence check (these
+# endpoints are where tokens come from) and never requests client certificates
+# it can't get — mTLS remains optional at the proxy as for every other route.
 
 locals {
   name = "opda-auth-stub"
@@ -99,15 +103,42 @@ resource "aws_lambda_function" "authstub" {
   tags = local.tags
 }
 
-resource "aws_lambda_function_url" "authstub" {
-  function_name      = aws_lambda_function.authstub.function_name
-  authorization_type = "NONE"
+# ── Private API Gateway + shared-proxy route ─────────────────────────────────
+
+data "aws_ssm_parameter" "execute_api_vpc_endpoint_id" {
+  name = "/opda/shared/execute_api_vpc_endpoint_id"
 }
 
-resource "aws_lambda_permission" "function_url" {
-  statement_id           = "AllowPublicFunctionUrl"
-  action                 = "lambda:InvokeFunctionUrl"
-  function_name          = aws_lambda_function.authstub.function_name
-  principal              = "*"
-  function_url_auth_type = "NONE"
+module "api_gateway" {
+  source = "git::https://github.com/Property-Data-Trust-Framework/opda-shared-infra.git//modules/api-gateway?ref=main"
+
+  name = local.name
+
+  openapi_body = templatefile("${path.module}/openapi/api.yml", {
+    service_invoke_arn = aws_lambda_function.authstub.invoke_arn
+  })
+
+  execute_api_vpc_endpoint_id = data.aws_ssm_parameter.execute_api_vpc_endpoint_id.value
+  tags                        = local.tags
+}
+
+resource "aws_lambda_permission" "api_gateway" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.authstub.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${module.api_gateway.execution_arn}/*/*"
+}
+
+# Register /auth in the shared proxy's routing table. The proxy loads routes at
+# start-up — force-cycle the shared ECS tasks after first apply (see README).
+resource "aws_ssm_parameter" "proxy_route" {
+  name = "/opda/proxy/routes/${local.name}"
+  type = "String"
+  value = jsonencode({
+    prefix = "/auth"
+    url    = module.api_gateway.invoke_url
+  })
+  overwrite = true
+  tags      = local.tags
 }
