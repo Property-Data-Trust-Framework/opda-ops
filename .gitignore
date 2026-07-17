@@ -1,5 +1,10 @@
 # Keys and certificates — never commit
 keys/
+# EXCEPTION: the scaffolding's keys tree must ship with the repo — it holds the
+# public CA bundle + the empty drop-target folders every bootstrapped API needs.
+# (A parent-excluded dir can't have children re-included, so un-ignore the dir first.)
+!templates/dotnet/scaffolding/keys/
+!templates/dotnet/scaffolding/keys/**
 
 # Populated env files — contain secrets
 scripts/.env.*

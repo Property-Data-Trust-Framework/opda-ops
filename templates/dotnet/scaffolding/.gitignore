@@ -6,6 +6,7 @@ scripts/bruno.env
 # Key material — folder structure is tracked, contents are not
 # CA bundles are public and safe to commit; private key material is not
 keys/**
+!keys/**/
 !keys/**/.gitkeep
 !keys/**/ca/*.pem
 
