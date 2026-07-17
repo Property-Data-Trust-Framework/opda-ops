@@ -108,11 +108,20 @@ rm -f bruno/bruno.json.bak
 
 # Write non-secret repo-specific values so future terraform apply runs in
 # terraform/iam/ don't prompt for name/github_repo.
+# The OIDC trust must match the sub claim GitHub actually SENDS. Newly-created
+# repos get ID-pinned immutable subjects (org@id/repo@id) while older repos keep
+# the legacy name form — always derive from the API rather than assuming.
+SUB_REPO=$(gh api "repos/$FULL_REPO/actions/oidc/customization/sub" --jq '.sub_claim_prefix' 2>/dev/null | sed 's/^repo://')
+[[ -z "$SUB_REPO" ]] && SUB_REPO="$FULL_REPO"
+echo "    OIDC sub identity: $SUB_REPO"
+
 cat > terraform/iam/terraform.tfvars <<TFVARS
 # Non-secret values for this repo's IAM root. Committed intentionally —
 # see .gitignore exception for terraform/iam/terraform.tfvars.
+# github_repo holds the OIDC sub identity (may be the ID-pinned org@id/repo@id
+# form on newer repos) — source: repos/<o>/<r>/actions/oidc/customization/sub.
 name        = "$REPO_NAME"
-github_repo = "$FULL_REPO"
+github_repo = "$SUB_REPO"
 TFVARS
 
 echo "    Copied: .github/workflows/deploy.yml, terraform/, openapi/, bruno/"
@@ -224,11 +233,11 @@ else
       -input=false -no-color >/dev/null
 
     TF_VAR_name="$REPO_NAME" \
-    TF_VAR_github_repo="$FULL_REPO" \
+    TF_VAR_github_repo="$SUB_REPO" \
     terraform apply -auto-approve -input=false -no-color
 
     ROLE_ARN=$(TF_VAR_name="$REPO_NAME" \
-      TF_VAR_github_repo="$FULL_REPO" \
+      TF_VAR_github_repo="$SUB_REPO" \
       terraform output -raw github_actions_role_arn 2>/dev/null || true)
 
     cd "$TARGET_DIR"
@@ -263,23 +272,21 @@ echo "       NOTE: provenance is a separate cert from signing — generate it se
 echo "             The portal-issued KID for the provenance cert is the PROVENANCE_SIGNING_KID GitHub variable."
 echo ""
 echo "  2. Normalise the GUID-named cert files to canonical names:"
-echo "       cd $TARGET_DIR && ./scripts/normalise-certs.sh"
+echo "       ./$REPO_NAME/scripts/normalise-certs.sh"
 echo ""
 echo "  3. Push secrets to GitHub:"
 echo "       ./opda-ops/scripts/setup-secrets.sh $REPO_NAME <provider-client-id>"
 echo ""
 if [[ "$IAM_BOOTSTRAP_DONE" == false ]]; then
-  echo "  4. IAM bootstrap did not complete — run manually before pushing:"
-  echo "       cd $TARGET_DIR/terraform/iam"
-  echo "       BUCKET=\"ops-terraform-state-\$(aws sts get-caller-identity --query Account --output text)\""
-  echo "       terraform init -reconfigure -backend-config=\"bucket=\$BUCKET\" -backend-config=\"region=eu-west-2\" -backend-config=\"key=$REPO_NAME/iam/terraform.tfstate\""
-  echo "       TF_VAR_name=$REPO_NAME TF_VAR_github_repo=Property-Data-Trust-Framework/$REPO_NAME terraform apply"
-  echo "       # Copy the output github_actions_role_arn and set it as AWS_ROLE_ARN in GitHub secrets."
+  echo "  4. IAM bootstrap did not complete — run before pushing (derives repo/bucket/key itself):"
+  echo "       ./$REPO_NAME/scripts/update-iam.sh"
+  echo "     Then set the role secret from the freshly-applied role:"
+  echo "       gh secret set AWS_ROLE_ARN --env $ENV_NAME --repo $FULL_REPO --body \"\$(aws iam get-role --role-name $REPO_NAME-github-actions --query Role.Arn --output text)\""
   echo ""
   echo "  5. Push to main — the pipeline will deploy the infrastructure."
   echo ""
-  echo "  6. After the first successful deploy, run prepare-bruno-env.sh from the repo root:"
-  echo "       cd $TARGET_DIR && ./scripts/prepare-bruno-env.sh --client-id <your-client-id>"
+  echo "  6. After the first successful deploy, prepare the Bruno env:"
+  echo "       ./$REPO_NAME/scripts/prepare-bruno-env.sh --client-id <your-client-id>"
   echo "     This writes scripts/bruno.env for the shared proxy endpoint."
   echo "     Share scripts/bruno.env with developers who can then run:"
   echo "       ./scripts/apply-bruno-env.sh"
