@@ -113,3 +113,9 @@ variable "proxy_path_prefix" {
   description = "Path prefix this API registers in the shared proxy routing table"
   default     = "/v1/placeholder"
 }
+
+variable "disconnected_mode" {
+  type        = bool
+  description = "Fully self-contained sandbox mode: forces authorizer bypass (see ADR-0012). Flip via the DISCONNECTED_MODE GitHub variable + redeploy."
+  default     = false
+}

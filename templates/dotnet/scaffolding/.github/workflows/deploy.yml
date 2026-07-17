@@ -44,6 +44,7 @@ jobs:
       TF_VAR_shared_services_ecr_base: ${{ vars.SHARED_SERVICES_ECR_BASE }}
       TF_VAR_signing_key:              ${{ secrets.SIGNING_KEY }}
       TF_VAR_bypass_auth:              ${{ vars.BYPASS_AUTH }}
+      TF_VAR_disconnected_mode:        ${{ vars.DISCONNECTED_MODE || 'false' }}
       TF_VAR_provenance_signing_kid:   ${{ vars.PROVENANCE_SIGNING_KID }}
       TF_VAR_dataprov_key:             ${{ secrets.DATAPROV_KEY }}
       TF_VAR_authorizer_image_tag:     ${{ vars.AUTHORIZER_IMAGE_TAG }}

@@ -1,0 +1,26 @@
+vars {
+  baseUrl: https://dev.api.smartpropdata.org.uk
+  tokenEndpoint: https://REPLACE-WITH-AUTH-STUB-URL.lambda-url.eu-west-2.on.aws/token
+  uprn: 200001858581
+  query: capel isaac,sa43jq
+  titleNumber: EXC10010
+  callbackUrl: https://ext.smartpropdata.org.uk/webhook
+  subscriptionId: 00000000-0000-0000-0000-000000000000
+  vmcBaseUrl: https://admin.demo3.viewmychain.com
+  vmcCallbackUrl: https://ext.smartpropdata.org.uk/webhook
+  pdiBaseUrl: https://sandbox-pdtf.propertydealsinsight.com
+  spriftBaseUrl: https://opdatest.sprift.com
+  spriftScope: property-pack
+  smooveDirectBaseUrl: https://api.smve-staging.co.uk/opda
+}
+vars:secret [
+  clientId,
+  clientRequestId,
+  bearerToken,
+  signingKey,
+  vmcBearerToken,
+  pdiBearerToken,
+  spriftBearerToken,
+  spriftApiKey,
+  smooveApiKey
+]
