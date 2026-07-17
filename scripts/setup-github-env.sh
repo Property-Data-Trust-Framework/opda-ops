@@ -107,6 +107,8 @@ REQUIRED_VARS=(
 
 # Default values applied when the env file does not set them.
 : "${GH_VAR_OAUTH_ISSUER:=https://auth.directory.pdtf.raidiam.io}"
+# Post-Raidiam-shutoff bootstraps: set GH_VAR_OAUTH_ISSUER=https://dev.api.smartpropdata.org.uk/auth
+# in the env file instead (see wiki Runbook § "Auth modes" + the stub-auth bootstrap note).
 
 # Secrets auto-resolved from AWS; env file values take precedence if set.
 AUTO_SECRETS=(

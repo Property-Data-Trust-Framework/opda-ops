@@ -22,5 +22,8 @@ module "authorizer" {
 
   bypass_auth = var.bypass_auth || var.disconnected_mode
 
+  # Matches Raidiam production; module default is -1 (unreserved).
+  reserved_concurrent_executions = 12
+
   tags = local.tags
 }
