@@ -30,7 +30,7 @@ registered JWKS, add `cnf` + mTLS, per-client TTLs).
    BUCKET="ops-terraform-state-$(aws sts get-caller-identity --query Account --output text)"
    terraform init -backend-config="bucket=$BUCKET" -backend-config="region=eu-west-2"
    TF_VAR_hmac_key="$(openssl rand -base64 48)" \
-   TF_VAR_clients_json='{"demo-bff":{"scopes":["land-registry","transaction-status","property-pack","material-info"]},"bruno":{"scopes":["land-registry"]}}' \
+   TF_VAR_clients_json='{"<the BFF OPDA_CLIENT_ID relying-party URL>":{"scopes":["land-registry","transaction-status","property-pack","material-info"]},"bruno":{"scopes":["land-registry"]}}' \
    TF_VAR_authstub_image_tag="authstub-<sha>" \
      terraform apply
    ```
@@ -45,6 +45,14 @@ TOKEN=$(curl -s -X POST "https://dev.api.smartpropdata.org.uk/auth/token" -d "gr
 curl -s -X POST "https://dev.api.smartpropdata.org.uk/auth/token/introspection" -d "token=$TOKEN" | jq .
 # expect: {"active": true, "client_id": "bruno", "scope": "land-registry", ...} and NO cnf field
 ```
+
+## Registry keys — match what clients SEND
+
+Keys are the literal `client_id` form values consumers post: the BFF sends its
+Raidiam relying-party URL (`gh variable get OPDA_CLIENT_ID --env dev --repo
+Property-Data-Trust-Framework/opda-demo-bff`), Bruno's stub-auth env sends `bruno`.
+A friendly name the client never sends ⇒ `invalid_client` ⇒ BFF 502s (learned
+2026-07-16). After registry changes, force the warm Lambda to reload (see below).
 
 ## Rotation / registry changes
 
